@@ -3,7 +3,7 @@ package packets;
 import java.util.Arrays;
 
 public class ErrorPacket extends Packet {
-	private static final PacketType type = PacketType.ERR; 
+	private static final PacketType type = PacketType.ERR;
 	private final byte[] bytes;
 	private final String message;
 	private final ErrorType err;

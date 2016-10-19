@@ -7,7 +7,7 @@ import java.net.InetAddress;
  * ClientController controls the Read and Write operations of the client 
  * along with assigning the appropriate ports. It also manages when the 
  * system is in the quiet or verbose mode.
- * 
+ * This class primarily cleans up code, it calls methods in the Client class.
  * @author Team 15
  */
 public class ClientController {
@@ -28,7 +28,7 @@ public class ClientController {
 	
 	public void readFile(String path){
 		try{
-			client.readFile(path, InetAddress.getLocalHost(), (testMode)?23:69);
+			client.readFile(path, InetAddress.getLocalHost(), (testMode)?23:69); //try to get the client to read the file
 		}catch(Throwable t){
 			//throw new RuntimeException(t.getMessage());
 			System.out.println("The file you are trying to read does not exist.");
