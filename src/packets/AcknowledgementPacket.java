@@ -12,7 +12,7 @@ public class AcknowledgementPacket extends Packet {
 	private final int number;
 	
 	public AcknowledgementPacket(int number){
-		while(number<0)number+=(1<<16);
+		while(number<0)number+=(1<<16);//reprensents 2^16.
 		while(number>=1<<16)number-=(1<<16);
 		this.number = number;
 		byte[] temp = new byte[4];
@@ -34,6 +34,7 @@ public class AcknowledgementPacket extends Packet {
 		}
 		this.number = (Byte.toUnsignedInt(data[2]) << 8)+(Byte.toUnsignedInt(data[3]));
 	}
+	
 	
 	public boolean comesAfter(int lastNumber){
 		return (this.number-lastNumber==1)||(this.number == 0 && lastNumber == 1<<16);
