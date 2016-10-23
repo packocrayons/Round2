@@ -4,6 +4,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+
 import packets.Packet;
 import packets.PacketFactory;
 
@@ -23,8 +24,16 @@ public class IntermediateHost{
 	private InetAddress clientAdd, serverAdd;
 	private int clientPort, serverPort; 
 	private static final PacketFactory pf = new PacketFactory();
+	private PacketFX[] effects;
 	
-	public IntermediateHost() {
+	public IntermediateHost(){
+		this(new PacketFX[0]); //send it an empty array
+	}
+
+
+	//this constructor now takes arguments. The original is still in place
+	public IntermediateHost(PacketFX[] fx) {
+		effects = fx;
 		try {
 			wellKnownSocket = new DatagramSocket(23);
 			serverSocket = new DatagramSocket();
@@ -33,19 +42,29 @@ public class IntermediateHost{
 			//There are three threads so that the host can be listening on all three ports at the same time
 			//for D1, the host does not need to care about what it is moving at all.
 			
-			//Listens on the well known port, updates the client's address, and creates new client ports
+			//Listens on the well known port (23), updates the client's address, and creates new client ports
+			//this thread listens for packetFX of type 1
 			new Thread(new Runnable(){
 
 				@Override
 				public void run() {
+					PacketFX[] myFX;
+					int myFXIndex = 0;
+					for (int i = 0; i < effects.length; ++i) {
+						if (effects[i].getAffectedThread() == 1) myFX[myFXIndex++] = effects[i];
+					} //get all of my effects
 					try{
 						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
 						while(true){
-							wellKnownSocket.receive(d);
+							wellKnownSocket.receive(d); //receive a packet on the well known socket
 							newClientSocket();
 							updateClientAddress(d.getAddress(), d.getPort());
 							Packet p = pf.getPacket(d.getData(), d.getLength());
 							System.out.println("\nReceived a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" on the well known port");
+							System.out.println("Testing if this packet should be affected");
+							for (int i = 0; i < myFX.length; ++i) {
+								if (myFX[i].affectThisPacket(p)) //TODO effect the packet (ideally by calling myFX[i].sendEffectPacket)
+							}
 							System.out.println("Sending it to the server's well known port");
 							System.out.println("");
 							sendToServerWellKnownPort(p);
@@ -59,6 +78,7 @@ public class IntermediateHost{
 			
 			
 			//listens on the client port, and sends to the server port
+			//this thread listens for packetfx of type 2
 			new Thread(new Runnable(){
 
 				@Override
@@ -87,6 +107,7 @@ public class IntermediateHost{
 			}).start();
 			
 			//listens on the server port, updates the server's location, and sends to the client
+			//this thread listens for packetFX of type 3
 			new Thread(new Runnable(){
 
 				@Override
@@ -169,6 +190,18 @@ public class IntermediateHost{
 	public static void main(String[] args){
 		
 		System.out.print("Intermediate Host started\n");
+
+		FileReader fr = new FileReader(new File("IHErrorFile.txt"));
+
+		BufferedReader br = new BufferedReader(fr);
+
+		String line = null; //so that the first time through the loop works if the file is empty
+
+		while ((line = br.readLine()) != null){
+			StringTokenizer token = new StringTokenizer(line, " ");
+
+		}
+
 		System.out.print("Waiting for packet");
 		new IntermediateHost();
 	}
