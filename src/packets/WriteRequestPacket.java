@@ -100,5 +100,10 @@ public class WriteRequestPacket extends Packet{
 	public static int getBufferSize() {
 		return 2+260;
 	}
+	
+	@Override
+	public int getNumber(){
+		return 0; //request packets are number 0
+	}
 
 }

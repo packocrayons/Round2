@@ -29,5 +29,9 @@ public class IDontCarePacket extends Packet {
 	public static int getBufferSize() {
 		return 1024;//who cares
 	}
-
+	
+	@Override
+	public int getNumber(){
+		return -1;
+	}
 }

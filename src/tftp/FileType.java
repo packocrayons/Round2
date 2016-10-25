@@ -1,4 +1,4 @@
-package packets;
+package tftp;
 
 /**
  * FileType enum used for the file mode type
