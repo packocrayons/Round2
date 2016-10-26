@@ -8,7 +8,16 @@ In this iteration, the client, error simulator and server were developed to supp
 The Client provides a simple user interface that allows the user to input required values. It establishes the appropriate connection with the server and initiates the transfer. 
 It does not terminate until the user indicates that no more files are to be transferred and it does not support concurrent file transfers.
 
-The Error Simulation (port 23) communicates with the client and the server using DatagramSocket objects. In this iteration, the error simulator just passed on packets (client to server, and server to client)
+The Error Simulation (port 23) communicates with the client and the server using DatagramSocket objects.
+The ErrorSimulator uses a context-free language to read it's actions towards packets, the language is described as follows:
+program packetType packetNumber [args]
+Available 'programs' are :
+drop [noArgs]
+delay [timeInMillis]
+duplicate [timeBetweenPacketsMillis numberOfDuplicates]
+#lines that begin with '#' are comments and are ignored, there is no multi-line commenting, or beginning a comment mid-line
+Currently the simulator reads from [project dir]/bin/tftp/IHErrorFile.txt, there is a symlink to this file in [project dir].
+
 
 The Server(port 69) consists of multiple Java threads. Thus capable of supporting multiple concurrent read and write connections with different clients.
 Once the server is started, it runs until it receives a shutdown command from the server operator.
