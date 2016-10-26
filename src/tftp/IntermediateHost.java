@@ -34,8 +34,8 @@ public class IntermediateHost{
 	private static char IHERRORFILECOMMENTCHAR = '#';
 	
 	private DatagramSocket wellKnownSocket, serverSocket, clientSocket;
-	//private InetAddress clientAdd, serverAdd; currently unused but should be implemented at some point
-	//private int clientPort, serverPort; currently unused but should be implemented at some point
+	private InetAddress clientAdd, serverAdd; //currently unused but should be implemented at some point
+	private int clientPort, serverPort; //currently unused but should be implemented at some point
 	private static final PacketFactory pf = new PacketFactory();
 	private PacketFX[] effects;
 	
