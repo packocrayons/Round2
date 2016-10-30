@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 import packets.AcknowledgementPacket;
 import packets.DataPacket;
@@ -21,6 +23,8 @@ import packets.PacketType;
  * @author Team 15
  */
 public class Sender implements Runnable {
+	
+	private static final int SENDINGPORTTIMEOUT = 2000; 
 
 	private final ErrorHandler err;
 	private final OutputHandler out;
@@ -39,10 +43,74 @@ public class Sender implements Runnable {
 		this.out = out;
 		this.file = file;
 		this.socket = socket;
+		try {
+			this.socket.setSoTimeout(SENDINGPORTTIMEOUT);
+		} catch (SocketException e) {
+			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
+		}
 		this.closeItWhenDone = closeItWhenDone;	
 		this.address = address;
 		this.port = port;
 		
+	}
+
+	
+	private boolean getValidAckPacket(DatagramPacket receiveWith, DatagramPacket retransmit, int number) throws IOException{
+		while(true){
+			//wait to receive the packet, or catch a SocketTimeoutException
+			//We're on the sending side, so we are responsible for retransmit
+			while(true){
+				try{
+					socket.receive(receiveWith);
+					break; //if we got it, leave the loop
+				} catch (SocketTimeoutException e){
+					out.lowPriorityPrint("Timed out, retransmitting");
+					socket.send(retransmit); //keep trying to send the datagram
+				}
+			}
+			
+			Packet p = pfac.getPacket(receiveWith.getData(),receiveWith.getLength());
+			
+			if(p.getType().equals(PacketType.ACK)){
+				AcknowledgementPacket ap = (AcknowledgementPacket)p;
+				
+				out.lowPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
+				
+				/*DEPRECATED
+				if(ap.getNumber() != number){
+					throw new RuntimeException("This is the wrong acknowledgement");
+				}
+				*/
+				
+				if(ap.getNumber() < number){ //if it's less than we're working with right now, it's a duplicate ack
+					//SORCERER'S APPRENTICE BUG - DO NOTHING
+					//we loop around and get a packet again.
+				} else if(ap.getNumber() > number){
+					throw new RuntimeException("This acknowledgement is ahead of schedule");
+					//TODO not sure exactly what we're supposed to do here, but freaking out seems like as good a choice as any
+				} else { //it's not > and not <, it must be =. We successfully got a valid ack packet
+					return true;
+				}
+				
+			}else{
+				if(p.getType().equals(PacketType.ERR)){
+					ErrorPacket er = (ErrorPacket)p;
+					if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
+						err.handleRemoteAccessViolation(socket, address, port);
+					}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
+						err.handleRemoteAllocationExceeded(socket, address, port);
+					}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
+						err.handleRemoteAllocationExceeded(socket, address, port);
+					}else{
+						throw new RuntimeException("The packet receved is some unimplemented error type");
+					}
+				}else{
+					throw new RuntimeException("The packet received is of the wrong type");
+				}
+				break; //break out of everything 
+			}
+		}
+		return false; //something went wrong
 	}
 	
 	@Override
@@ -71,41 +139,12 @@ public class Sender implements Runnable {
 				socket.send(datagram);
 				
 				out.lowPriorityPrint("Sending Data"+dp.getNumber()+" to port:"+datagram.getPort()+"\nIt is "+dp.getBytes().length+" bytes long");
-	
-				socket.receive(ack);
 				
-				Packet p = pfac.getPacket(ack.getData(),ack.getLength());
+				if (!getValidAckPacket(ack, datagram, number)) break; //if something goes wrong - at the moment only an error packet causes this to return false
+
+				number = (number+1)%(1<<16);
 				
-				if(p.getType().equals(PacketType.ACK)){
-					AcknowledgementPacket ap = (AcknowledgementPacket)p;
-					
-					out.lowPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+ack.getPort());
-					
-					if(ap.getNumber() != number){
-						throw new RuntimeException("This is the wrong acknowledgement");
-					}
-					
-					
-					number = (number+1)%(1<<16);
-					
-					if(readSize < 512){
-						break;
-					}
-				}else{
-					if(p.getType().equals(PacketType.ERR)){
-						ErrorPacket er = (ErrorPacket)p;
-						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-							err.handleRemoteAccessViolation(socket, address, port);
-						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-							err.handleRemoteAllocationExceeded(socket, address, port);
-						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-							err.handleRemoteAllocationExceeded(socket, address, port);
-						}else{
-							throw new RuntimeException("The packet receved is some unimplemented error type");
-						}
-					}else{
-						throw new RuntimeException("The packet receved is of the wrong type");
-					}
+				if(readSize < 512){
 					break;
 				}
 			
