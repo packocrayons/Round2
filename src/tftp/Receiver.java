@@ -29,10 +29,11 @@ public class Receiver implements Runnable {
 	private final OutputStream file;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
+	private final PacketFactory pFac = new PacketFactory();
+	private boolean senderFound = false;
 	private InetAddress address;
     private boolean closed = false;
 	private int port;
-	private final PacketFactory pFac = new PacketFactory();
 	
 	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone){
 		this.err = err;
@@ -40,9 +41,79 @@ public class Receiver implements Runnable {
 		this.file = file;
 		this.socket = socket;
 		this.closeItWhenDone = closeItWhenDone;
-		
 	}
 	
+	@Override
+	public void run() {
+		try{
+			//Initialization
+			int lastBlock = 0;
+			byte[] buffer = new byte[Packet.getBufferSize()];
+			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
+			
+			
+			while(true){
+				socket.receive(datagramIn);
+				if(!senderFound){
+					address = datagramIn.getAddress();
+					port = datagramIn.getPort();
+					senderFound = true;
+				}
+				
+				
+				Packet p = pFac.getPacket(datagramIn);
+				
+				//check the input
+				if(!p.getType().equals(PacketType.DATA)){
+					if(p.getType().equals(PacketType.ERR)){
+						ErrorPacket er = (ErrorPacket)p;
+						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
+							err.handleRemoteAccessViolation(socket, address, port);
+						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
+							err.handleRemoteAllocationExceeded(socket, address, port);
+						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
+							err.handleRemoteAllocationExceeded(socket, address, port);
+						}else{
+							throw new RuntimeException("The packet receved is some unimplemented error type");
+						}
+					}else{
+						throw new RuntimeException("The wrong type of packet was receved, it was not Data or Error");
+					}
+					close();
+					break;
+				}
+				
+				DataPacket dp = (DataPacket)p;
+				
+				
+				if(dp.getNumber() == lastBlock){
+					//we received a retransition of the last block
+					ack(lastBlock);
+				}else if(dp.comesAfter(lastBlock)){
+					//we received the next block
+					writeOut(dp.getBytes());
+					lastBlock = (lastBlock+1) & 0xffff; 
+					ack(lastBlock);
+					if(dp.isLast()){
+						break;
+					}
+				}else{
+					//we received some other block
+					continue;
+				}
+				
+			}
+			
+			//maybe leave the socket open for a short while to retransmit the last ack?
+			close();
+		}catch(Throwable t){
+			throw new RuntimeException(t);
+		}
+	}
+
+	private void ack(int n) throws IOException{
+		socket.send(new AcknowledgementPacket(n).asDatagramPacket(address, port));
+	}
 	
 	private boolean writeOut(byte[] data){
 		try{
@@ -59,95 +130,6 @@ public class Receiver implements Runnable {
 		}
 	}
 	
-	
-	private DataPacket narrowIncomming(Packet p){
-		if(!p.getType().equals(PacketType.DATA)){
-			if(p.getType().equals(PacketType.ERR)){
-				ErrorPacket er = (ErrorPacket)p;
-				if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-					err.handleRemoteAccessViolation(socket, address, port);
-				}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-					err.handleRemoteAllocationExceeded(socket, address, port);
-				}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-					err.handleRemoteAllocationExceeded(socket, address, port);
-				}else{
-					throw new RuntimeException("The packet receved is some unimplemented error type");
-				}
-			}else{
-				throw new RuntimeException("The wrong type of packet was receved, it was not Data or Error");
-			}
-			return null;
-		}
-		return (DataPacket)p;
-		
-	}
-	
-	@Override
-	public void run() {
-		try{
-			int lastBlock = 0;
-			byte[] buffer = new byte[Packet.getBufferSize()];
-			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
-			
-			socket.receive(datagramIn);
-			address = datagramIn.getAddress();
-			port = datagramIn.getPort();
-			
-			DataPacket dp = narrowIncomming(pFac.getPacket(datagramIn.getData(), datagramIn.getLength()));
-		    if(dp == null){
-		    	close(); 
-		    	return;
-		    }
-			
-		    //lastBlock = 1;
-			out.lowPriorityPrint("Receiving Data"+dp.getNumber()+"\nIt is "+dp.getBytes().length+" bytes long");
-			if(dp.getNumber() != 1){
-				throw new RuntimeException("The initial dataBlock has the wrong number");
-			}
-			
-			if(!writeOut(dp.getFilePart())){
-				close();
-				return;
-			}
-			
-			while(true){
-				if(!dp.comesAfter(lastBlock)){
-					throw new RuntimeException("The blocks are not being sent sequentially");
-				}
-				lastBlock = dp.getNumber();
-				
-				AcknowledgementPacket ap = new AcknowledgementPacket(dp.getNumber()); 
-				
-				socket.send(new DatagramPacket(ap.getBytes(), ap.getBytes().length, address, port));
-				out.lowPriorityPrint("Sending ACK"+ap.getNumber()+" to port:"+port);
-
-				if(dp.isLast()){
-					break;
-				}
-				
-				socket.receive(datagramIn);
-				
-				
-				dp = narrowIncomming(pFac.getPacket(datagramIn.getData(), datagramIn.getLength()));
-			    if(dp == null){
-			    	close(); 
-			    	return;
-			    }
-				
-				out.lowPriorityPrint("Receiving Data"+dp.getNumber()+" from port "+ datagramIn.getPort() +"\nIt is "+dp.getBytes().length+" bytes long");
-				
-				if(!writeOut(dp.getFilePart())){
-					close();
-					return;
-				}
-			}
-
-			close();
-		}catch(Throwable t){
-			close();
-			throw new RuntimeException(t.getMessage());
-		}
-	}
 	
 	public void finalize(){
 		close();

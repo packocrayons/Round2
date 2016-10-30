@@ -24,9 +24,7 @@ public class DataPacket extends Packet {
 		}
 		this.filePart = data.clone();
 		this.isLast = data.length<512;
-		while(number<0)number+=(1<<16);
-		while(number>=1<<16)number-=(1<<16);
-		this.number = number;
+		this.number = number & 0xffff;
 		byte[] temp = new byte[4+data.length];
 		temp[0] = (byte)0;
 		temp[1] = type.getOpcode();
@@ -53,7 +51,7 @@ public class DataPacket extends Packet {
 	}
 	
 	public boolean comesAfter(int lastNumber){
-		return (this.number-lastNumber==1)||(this.number == 0 && lastNumber == (1<<16)-1);
+		return ((this.number - lastNumber) & 0xffff) == 1;
 	}
 	
 	public int getNumber(){

@@ -4,9 +4,6 @@ package tftp;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-import javax.lang.model.type.ErrorType;
-
-import packets.ErrorPacket;
 
 /**
  * Server and Client provide one of.
