@@ -38,12 +38,12 @@ public class AcknowledgementPacket extends Packet {
 		return number;
 	}
 	
-	@Override
+	//@Override
 	public byte[] getBytes() {
 		return bytes.clone();
 	}
 
-	@Override
+	//@Override
 	public PacketType getType() {
 		return type;
 	}
