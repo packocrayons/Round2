@@ -1,6 +1,6 @@
 
 package packets;
-
+// * @author Team 17
 public enum ErrorType {
 	NOT_DEFINED((byte)0),
 	FILE_NOT_FOUND((byte)1),

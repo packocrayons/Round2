@@ -6,7 +6,7 @@ import java.net.InetAddress;
 
 /**
  * Abstract class for Packets containing the main variables needed in a Packet
- * @author Team 15
+ * @author Team 17
  */
 public abstract class Packet {
 	public abstract byte[] getBytes();

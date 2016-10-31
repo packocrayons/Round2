@@ -12,7 +12,7 @@ import java.util.Scanner;
  * Client side to read, write, toggle test and quiet mode, 
  * and prompt the user for input (such as the filename and instruction)
  * 
- * @author Team 15
+ * @author Team 17
  */
 public class ClientUI implements Runnable, OutputHandler {
 	private ClientController client;

@@ -10,7 +10,7 @@ import java.net.DatagramSocket;
 import packets.Packet;
 
 /**
- * @author brydon
+ * @author brydon team 17
  *
  */
 public interface SendReceiveInterface {

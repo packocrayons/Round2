@@ -21,7 +21,7 @@ import packets.WriteRequestPacket;
  * The server handles requests and makes a new thread for each client connection
  * It sends back the appropriate response without any actual file transfer.
  * One socket (69) is used to receive (it stays open) and another for each response.
- * @author Team 15
+ * @author Team 17
  *
  */
 public class Server implements Runnable{
@@ -63,6 +63,7 @@ public class Server implements Runnable{
 				
 				DatagramPacket requestDatagram = new DatagramPacket(requestBuffer, requestBuffer.length);
 				
+				//add timeout here as well ? 
 				try{
 					serverSocket.receive(requestDatagram);
 				}catch(SocketException e){

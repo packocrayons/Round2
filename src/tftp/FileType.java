@@ -3,7 +3,7 @@ package tftp;
 
 /**
  * FileType enum used for the file mode type
- * @author Team 15
+ * @author Team 17
  */
 public enum FileType {
 	OCTET,NETASCII;

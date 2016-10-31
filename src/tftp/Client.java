@@ -24,7 +24,7 @@ import tftp.FileType;
  * Client class is the client side for TFTP. The client uses one port and sends 
  * a read or write request and gets the appropriate response from the server.
  * 
- * @author Team 15
+ * @author Team 17
  */
 public class Client {
 	
@@ -73,13 +73,14 @@ public class Client {
 			WriteRequestPacket rq = new WriteRequestPacket(filePath, FileType.OCTET);
 			DatagramPacket ack0 = new DatagramPacket(new byte[Packet.getBufferSize()], AcknowledgementPacket.getBufferSize());
 			socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
-			
+			//maybe add timeout here if the first ack0 is lost or delayed
 			socket.receive(ack0);
 			PacketFactory pfac = new PacketFactory();
 			Packet p = pfac.getPacket(ack0.getData(), ack0.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){
 				if(((AcknowledgementPacket)(p)).getNumber() != 0){
+					//change needed here to handle delay/loss
 					throw new RuntimeException("This is the wrong Ack");
 				}
 				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort()).run();

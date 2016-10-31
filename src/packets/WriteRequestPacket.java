@@ -6,7 +6,7 @@ import tftp.FileType;
 
 /**
  * A class that handles everything required for Write Request Packet 
- * @author Team 15
+ * @author Team 17
  */
 public class WriteRequestPacket extends Packet{
 	private final PacketType type = PacketType.WRQ;

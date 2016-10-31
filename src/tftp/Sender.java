@@ -20,7 +20,7 @@ import packets.PacketType;
 /**
  * Sender get the file, sends it to the port, receives 
  * the acknowledgement packet, and closes the file and socket
- * @author Team 15
+ * @author Team 17
  */
 public class Sender implements Runnable {
 	

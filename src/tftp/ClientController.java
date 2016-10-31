@@ -9,7 +9,7 @@ import java.net.InetAddress;
  * along with assigning the appropriate ports. It also manages when the 
  * system is in the quiet or verbose mode.
  * This class primarily cleans up code, it calls methods in the Client class.
- * @author Team 15
+* @author Team 17
  */
 public class ClientController {
 	private final Client client;

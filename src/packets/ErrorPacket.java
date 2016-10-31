@@ -3,6 +3,7 @@ package packets;
 
 import java.util.Arrays;
 
+// * @author Team 17
 public class ErrorPacket extends Packet {
 	private static final PacketType type = PacketType.ERR;
 	private final byte[] bytes;

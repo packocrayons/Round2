@@ -12,7 +12,7 @@ import java.io.OutputStream;
 /**
  * FileFactory class loads the given file or writes the file from the given filename 
  * 
- * @author Team 15
+ * @author Team 17
  */
 public class FileFactory {
 	

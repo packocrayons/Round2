@@ -3,7 +3,7 @@ package packets;
 
 /**
  * An enum used along with the PacketFactory class to differentiate among the various types of packets possible
- * @author Team 15
+ * @author Team 17
  */
 public enum PacketType {
     IDC("I don't care",(byte)0),

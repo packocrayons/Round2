@@ -8,6 +8,7 @@ import packets.PacketType;
 
 import tftp.EffectType;
 
+//* @author Team 17
 public class PacketFX {
 	//these are just offsets into the effectArgs[] array
 	private static final int PACKETDELAYTIMEINDEX = 0;

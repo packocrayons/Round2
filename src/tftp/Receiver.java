@@ -19,7 +19,7 @@ import packets.PacketType;
 /**
  * Receiver receives the data files, writes them, and sends 
  * an acknowledgement packet when its done writing
- * @author Team 15
+ * @author Team 17
  */
 public class Receiver implements Runnable {
 

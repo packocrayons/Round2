@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 /**
  * A class that handles everything required for an I don't care packet 
- * @author Team 15
+  * @author Team 17
  * An I don't care packet is a packet that only exists when packet creation (in the packet factory) failed.
  */
 public class IDontCarePacket extends Packet {

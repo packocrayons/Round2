@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 /**
  * A class that handles everything required for a Data packet 
- * @author Team 15
+ * @author Team 17
  */
 public class DataPacket extends Packet {
 	private final PacketType type = PacketType.DATA;

@@ -6,6 +6,7 @@ import java.net.InetAddress;
 
 
 /**
+ * @author Team 17
  * Server and Client provide one of.
  * 
  * They should be their own class,

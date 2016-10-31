@@ -7,7 +7,7 @@ import tftp.FileType;
 
 /**
  * A class that handles everything required for Read Request Packet 
- * @author Team 15
+ * @author Team 17
  */
 public class ReadRequestPacket extends Packet{
 	private final PacketType type = PacketType.RRQ;

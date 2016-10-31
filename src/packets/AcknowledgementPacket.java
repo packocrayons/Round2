@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 /**
  * A class that handles everything required for an acknowledgement packet 
- * @author Team 15
+ * @author Team 17
  */
 public class AcknowledgementPacket extends Packet {
 	private final PacketType type = PacketType.ACK;

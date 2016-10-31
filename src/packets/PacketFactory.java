@@ -4,7 +4,7 @@ package packets;
 import java.net.DatagramPacket;
 /**
  * Used to differentiate among the various types of packets possible
- * @author Team 15
+ * @author Team 17
  */
 public class PacketFactory {
 	public PacketFactory(){
