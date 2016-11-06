@@ -21,17 +21,6 @@ public class ClientErrorHandler implements ErrorHandler {
 	@Override
 	public void handleLocalFileNotFound(DatagramSocket socket, InetAddress address, int port) {
 		out.highPriorityPrint("The file to be transfered cannot be found.");
-		/* add this sending error packet , + need file already exists ? */
-		/*if(socket != null && address != null && port != 0){
-			//things happened after the connection was established.
-			ErrorPacket e = new ErrorPacket(ErrorType.FILE_NOT_FOUND);
-			try {
-				socket.send(new DatagramPacket(e.getBytes(), e.getBytes().length, address, port));
-			} catch (IOException e1) {
-				//What the hell do I do if the error handler errors out?
-				e1.printStackTrace();
-			}
-		}*/
 	}
 
 	@Override

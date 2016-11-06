@@ -142,7 +142,7 @@ public class Sender implements Runnable {
 				
 				if (!getValidAckPacket(ack, datagram, number)) break; //if something goes wrong - at the moment only an error packet causes this to return false
 
-				number = (number+1)%(1<<16);
+				number = (number+1) & 0xffff;
 				
 				if(readSize < 512){
 					break;
