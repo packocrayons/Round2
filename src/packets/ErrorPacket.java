@@ -21,14 +21,19 @@ public class ErrorPacket extends Packet {
 		
 		temp[0] = (byte)0;
 		temp[1] = type.getOpcode();
-		temp[3] = (byte)0;
-		temp[4] = err.getOpcode();
+		temp[2] = (byte)0;
+		temp[3] = err.getOpcode();
 		
-		System.arraycopy(this.message.getBytes(), 0, temp, 5, this.message.getBytes().length);
+		System.arraycopy(this.message.getBytes(), 0, temp, 4, this.message.getBytes().length);
 		
 		temp[temp.length-1] = (byte)0;
 		
 		this.bytes=temp;
+		
+		for(byte b : bytes){
+			System.out.println(b+" : "+(char)b);
+		}
+		
 	}
 	
 	protected ErrorPacket(byte[] data, int length){

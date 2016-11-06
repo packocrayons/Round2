@@ -64,6 +64,9 @@ public class Server implements Runnable{
 				DatagramPacket requestDatagram = new DatagramPacket(requestBuffer, requestBuffer.length);
 				
 				//add timeout here as well ? 
+				//no, this should not time out.
+				//when it is time to shut down the server, we close the socket
+				//this causes the SocketException that breaks from the loop.
 				try{
 					serverSocket.receive(requestDatagram);
 				}catch(SocketException e){
