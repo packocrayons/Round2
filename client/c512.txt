@@ -1,5 +1,4 @@
-<<<<<<< HEAD
 This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. T
 =======
 This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. This is nessesary because it represents the block size of a data block in TFTP.This file should be exactly 512 bytes. T
->>>>>>> 9e1e11a572111a2572274ab61298e6048e5c7c7c
+
