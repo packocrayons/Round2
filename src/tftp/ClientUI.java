@@ -50,7 +50,7 @@ public class ClientUI implements Runnable, OutputHandler {
 					if("test".equalsIgnoreCase(array[1])){
 						System.out.println((client.toggleTestMode())?("Test mode is now active"):("Test mode is now inactive"));
 					}else if("quiet".equalsIgnoreCase(array[1])){
-						System.out.println((toggleQuiet())?("Quite mode is now inactive"):("Quite mode is now active"));
+						System.out.println((toggleQuiet())?("Quiet mode is now active"):("Quiet mode is now inactive"));
 					}else{
 						System.out.println("Toggle what, test or quiet?");
 					}

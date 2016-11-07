@@ -186,6 +186,7 @@ public class Sender implements Runnable {
 				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
+			out.lowPriorityPrint("Sender is shutting down");
 		}
 	}
 	
