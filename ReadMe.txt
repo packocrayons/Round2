@@ -76,10 +76,7 @@ Files:
 
 Responsibilites:
  
-Nwakpadolu Soluzochukwu John (100987902) wrote code for the Client and wrote the ReadMe text.
+Brydon Gibson (100975274) wrote the interpreter for the control language for the intermediate host.
 Griffin Barrett(100978435) wrote code for the Packet classes and utterly supervised the rest of the code.
-Mohammed Omar Khan(100983417) wrote code for the File factory,the Intermediate Host and wrote the javadoc comments for all the classes.
-Damian Porter(100938926) wrote code for runnables and drew the UCMs for the RRQ and WRQ
-Ali Faizan(100935765) wrote code for the Server, drew the UMLs,wrote some of the test cases
+Lisa Martini () drew the diagrams.
 
-N/B: After the lab on Monday, Griffin Barrett completely supervised and edited the code for the other classes while the rest of the group worked on the diagrams and other deliverables.
