@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Objects;
 
 import packets.AcknowledgementPacket;
@@ -26,6 +28,9 @@ public class Receiver implements Runnable {
 	private final ErrorHandler err;
 	private final OutputHandler out;
 	
+	private static final int RECEIVINGPORTTIMEOUT = 4000; //larger then the sending port 
+	private static final int MAXNUMBERTIMEOUT = 4;
+	
 	private final OutputStream file;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
@@ -34,12 +39,18 @@ public class Receiver implements Runnable {
 	private InetAddress address;
     private boolean closed = false;
 	private int port;
+	private int numberOfTimeout=0;
 	
 	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone){
 		this.err = err;
 		this.out = out;
 		this.file = file;
 		this.socket = socket;
+		try {
+			this.socket.setSoTimeout(RECEIVINGPORTTIMEOUT);
+		} catch (SocketException e) {
+			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
+		}
 		this.closeItWhenDone = closeItWhenDone;
 	}
 	
@@ -55,8 +66,24 @@ public class Receiver implements Runnable {
 			while(true){
 				
 				//some time out code goes around this statement
-				socket.receive(datagramIn);
-				//it will simply say that if nothing comes in for some time, we kill the transfer
+				while(true){
+					try{
+						socket.receive(datagramIn);
+						break; //if we got it, leave the loop
+					} catch (SocketTimeoutException e){
+						out.lowPriorityPrint("Timed out, no retransmit from the receiver");
+						numberOfTimeout+=1;
+						if(numberOfTimeout==MAXNUMBERTIMEOUT)break;
+						//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
+					}
+				}
+				if(numberOfTimeout==MAXNUMBERTIMEOUT){
+					close();
+					break;
+				}
+				else{
+					numberOfTimeout=0;
+				}
 				
 				if(!senderFound){
 					out.lowPriorityPrint("Recording sender address");
