@@ -195,6 +195,7 @@ public class Receiver implements Runnable {
 				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
+			out.lowPriorityPrint("Receiver is shutting down");
 		}
 	}
 }
