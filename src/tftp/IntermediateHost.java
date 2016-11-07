@@ -28,7 +28,7 @@ import packets.PacketType;
  * passes it on to the server. Upon receiving a response, it passes it on to the client.
  * One well known socket (23) is used as well as one for the client, and another one for 
  * the server to send/receive.
- * @author Team 15
+ * @author Team 17
  */
 public class IntermediateHost{
 	

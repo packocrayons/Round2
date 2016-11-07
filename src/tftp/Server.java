@@ -74,7 +74,7 @@ public class Server implements Runnable{
 				}
 				
 				Packet p = pFac.getPacket(requestDatagram.getData(), requestDatagram.getLength());
-				
+				//add printed info here.
 				if(p.getType().equals(PacketType.RRQ)){
 					ReadRequestPacket r = (ReadRequestPacket)p;
 					System.out.println("Reading requested file");
@@ -98,6 +98,7 @@ public class Server implements Runnable{
 						OutputStream output = fFac.writeFile(r1.getFilePath());
 						AcknowledgementPacket ap = new AcknowledgementPacket(0);
 						byte[] ackPayload = ap.getBytes();
+						//No need to timeout here . If the ack is lost or delayed the sender will send the request again ? 
 						sendingSocketWRQ.send(new DatagramPacket(ackPayload, ackPayload.length, requestDatagram.getAddress(), requestDatagram.getPort()));
 						new Thread(new Receiver(err, out, output, sendingSocketWRQ, true)).start();//non-blocking
 

@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 import packets.Packet;
 
@@ -28,6 +30,7 @@ import tftp.FileType;
  */
 public class Client {
 	
+	private static final int SENDINGPORTTIMEOUT = 2000;
 	private final DatagramSocket socket;
 	private final FileFactory fFac;
 	private ErrorHandler err;
@@ -42,6 +45,11 @@ public class Client {
 		}catch(Throwable t){
 			t.printStackTrace();
 			throw new RuntimeException(t.getMessage());
+		}
+		try {
+			socket.setSoTimeout(SENDINGPORTTIMEOUT);
+		} catch (SocketException e) {
+			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
 		}
 	}
 	
@@ -58,6 +66,7 @@ public class Client {
 			try {
 				OutputStream output = fFac.writeFile(filePath);
 				ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
+				//must deal with rrq lost or delayed.Maybe in receiver ? ?? 
 				socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
 				new Receiver(err, out, output, socket, false).run();
 			} catch (IllegalAccessException  e) {
@@ -72,9 +81,20 @@ public class Client {
 			InputStream input = fFac.readFile(filePath);
 			WriteRequestPacket rq = new WriteRequestPacket(filePath, FileType.OCTET);
 			DatagramPacket ack0 = new DatagramPacket(new byte[Packet.getBufferSize()], AcknowledgementPacket.getBufferSize());
-			socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
-			//maybe add timeout here if the first ack0 is lost or delayed
-			socket.receive(ack0);
+			
+			
+			while(true){
+				try{
+					socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
+					socket.receive(ack0);
+					break; //if we got it, leave the loop
+				} catch (SocketTimeoutException e){
+					out.lowPriorityPrint("Timed out, retransmitting the write request");
+					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
+				}
+			}
+			
+			
 			PacketFactory pfac = new PacketFactory();
 			Packet p = pfac.getPacket(ack0.getData(), ack0.getLength());
 			

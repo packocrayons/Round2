@@ -25,6 +25,7 @@ import packets.PacketType;
 public class Sender implements Runnable {
 	
 	private static final int SENDINGPORTTIMEOUT = 2000; 
+	private static final int MAXNUMBERTIMEOUT = 4;
 
 	private final ErrorHandler err;
 	private final OutputHandler out;
@@ -35,6 +36,7 @@ public class Sender implements Runnable {
 	private final InetAddress address;
 	private final int port;
 	private final PacketFactory pfac = new PacketFactory();
+	private int numberOfRetransmit=0;
 	
 	private boolean closed = false;
 	
@@ -66,9 +68,17 @@ public class Sender implements Runnable {
 				} catch (SocketTimeoutException e){
 					out.lowPriorityPrint("Timed out, retransmitting");
 					socket.send(retransmit); //keep trying to send the datagram
+					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
+					numberOfRetransmit+=1;
+					if(numberOfRetransmit==MAXNUMBERTIMEOUT)break;
 				}
 			}
-			
+			if(numberOfRetransmit==MAXNUMBERTIMEOUT){
+				break;//break out of everything 
+			}
+			else{
+				numberOfRetransmit=0;
+			}
 			Packet p = pfac.getPacket(receiveWith.getData(),receiveWith.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){
@@ -100,7 +110,7 @@ public class Sender implements Runnable {
 					}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
 						err.handleRemoteAllocationExceeded(socket, address, port);
 					}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-						err.handleRemoteAllocationExceeded(socket, address, port);
+						err.handleRemoteFileNotFound(socket, address, port);//error Here need handleRemoteFileNotfound
 					}else{
 						throw new RuntimeException("The packet receved is some unimplemented error type");
 					}
