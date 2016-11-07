@@ -1,6 +1,6 @@
 
-SYSC 3303 TEAM 15 Iteration 1
-Members: Nwakpadolu Soluzochukwu John (100987902), Ali Faizan(100935765), Mohammed Omar Khan(100983417), Damian Porter(100938926), Griffin Barrett(100978435).
+SYSC 3303 TEAM 17 ITERATION 3
+Members: Brydon Gibson (100975274), Lisa Martini(), Griffin Barrett(100978435).
 
 TFTP File Transfer System: Client, Error Simulation (Intermediate Host), and Server
 
