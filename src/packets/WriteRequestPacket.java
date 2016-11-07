@@ -101,9 +101,4 @@ public class WriteRequestPacket extends Packet{
 		return 2+260;
 	}
 	
-	@Override
-	public int getNumber(){
-		return 0; //request packets are number 0
-	}
-
 }

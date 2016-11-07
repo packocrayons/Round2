@@ -66,7 +66,6 @@ public class Client {
 			try {
 				OutputStream output = fFac.writeFile(filePath);
 				ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
-				//must deal with rrq lost or delayed.Maybe in receiver ? ?? 
 				socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
 				new Receiver(err, out, output, socket, false).run();
 			} catch (IllegalAccessException  e) {

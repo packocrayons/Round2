@@ -61,7 +61,7 @@ public class Receiver implements Runnable {
 			int lastBlockNumber = 0;
 			byte[] buffer = new byte[Packet.getBufferSize()];
 			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
-			out.lowPriorityPrint("Receiver prepaiting to loop");
+			out.lowPriorityPrint("Receiver preparing to loop");
 			
 			while(true){
 				

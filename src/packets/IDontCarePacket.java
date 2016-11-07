@@ -31,10 +31,6 @@ public class IDontCarePacket extends Packet {
 		return 1024;//who cares
 	}
 	
-	@Override
-	public int getNumber(){
-		return -1;
-	}
 }
 
 

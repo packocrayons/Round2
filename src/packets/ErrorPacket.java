@@ -75,11 +75,6 @@ public class ErrorPacket extends Packet {
 	public ErrorType getErrorType() {
 		return err;
 	}
-	
-	@Override
-	public int getNumber(){
-		return -1;
-	}
 
 }
 
