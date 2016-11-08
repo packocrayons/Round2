@@ -80,6 +80,10 @@ public class ErrorPacket extends Packet {
 	public int getNumber(){
 		return -1;
 	}
+	
+	public String getMessage(){
+		return message;
+	}
 
 }
 

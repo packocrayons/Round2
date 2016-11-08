@@ -61,7 +61,7 @@ public class Receiver implements Runnable {
 			int lastBlockNumber = 0;
 			byte[] buffer = new byte[Packet.getBufferSize()];
 			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
-			out.lowPriorityPrint("Receiver prepaiting to loop");
+			out.highPriorityPrint("Receiver waiting for Data packet");
 			
 			while(true){
 				
@@ -71,8 +71,9 @@ public class Receiver implements Runnable {
 						socket.receive(datagramIn);
 						break; //if we got it, leave the loop
 					} catch (SocketTimeoutException e){
-						out.lowPriorityPrint("Timed out, no retransmit from the receiver");
 						numberOfTimeout+=1;
+						out.highPriorityPrint("Timed out ("+numberOfTimeout+") no retransmit from the receiver");
+						
 						if(numberOfTimeout==MAXNUMBERTIMEOUT)break;
 						//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 					}
@@ -86,9 +87,10 @@ public class Receiver implements Runnable {
 				}
 				
 				if(!senderFound){
-					out.lowPriorityPrint("Recording sender address");
+					
 					address = datagramIn.getAddress();
 					port = datagramIn.getPort();
+					out.highPriorityPrint("Recording sender address"+ address +" and sender port :"+port);
 					senderFound = true;
 				}
 
@@ -97,7 +99,8 @@ public class Receiver implements Runnable {
 				if(!p.getType().equals(PacketType.DATA)){
 					if(p.getType().equals(PacketType.ERR)){
 						ErrorPacket er = (ErrorPacket)p;
-						out.lowPriorityPrint("Error packet receved of type "+er.getErrorType());
+						out.highPriorityPrint("Error packet received of type "+er.getErrorType());
+						
 						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
 							err.handleRemoteAccessViolation(socket, address, port);
 						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
@@ -111,11 +114,11 @@ public class Receiver implements Runnable {
 						throw new RuntimeException("The wrong type of packet was receved, it was not Data or Error");
 					}
 					close();
-					out.highPriorityPrint("Transmission faild");
+					out.highPriorityPrint("Transmission failed");
 					break;
 				}
 				DataPacket dp = (DataPacket)p;
-				out.lowPriorityPrint("Data packet #"+dp.getNumber()+" receved. It has "+dp.getFilePart().length+" bytes");
+				out.highPriorityPrint("Data packet #"+dp.getNumber()+" receved. It has "+dp.getFilePart().length+" bytes");
 				/* print the data to be writen to disk
 				for(byte b : dp.getFilePart()){
 					System.out.print((char) b);
@@ -123,11 +126,11 @@ public class Receiver implements Runnable {
 				*/
 				System.out.print("\n");
 				if(dp.getNumber() == lastBlockNumber){
-					out.lowPriorityPrint("It was a retransmition/duplicate");
+					out.highPriorityPrint("It is a retransmition/duplicate packet");
 					//we received a retransition of the last block
 					ack(lastBlockNumber);
 				}else if(dp.comesAfter(lastBlockNumber)){
-					out.lowPriorityPrint("It was the next block");
+					out.highPriorityPrint("It is the expected block (next block)");
 					//we received the next block
 					writeOut(dp.getFilePart());
 					lastBlockNumber = (lastBlockNumber+1) & 0xffff; 
@@ -152,7 +155,7 @@ public class Receiver implements Runnable {
 	}
 
 	private void ack(int n) throws IOException{
-		out.lowPriorityPrint("Sending ack #"+n);
+		out.highPriorityPrint("Sending ack #"+n);
 		socket.send(new AcknowledgementPacket(n).asDatagramPacket(address, port));
 	}
 	
@@ -179,7 +182,7 @@ public class Receiver implements Runnable {
 	private synchronized void close(){
 		if(!closed){
 			closed = true;
-			out.lowPriorityPrint("Closing file stream");
+			out.highPriorityPrint("Closing file stream");
 			try {
 				this.file.close();
 			} catch (IOException e) {
@@ -192,10 +195,10 @@ public class Receiver implements Runnable {
 			}
 			
 			if(closeItWhenDone){
-				out.lowPriorityPrint("Closing socket");
+				out.highPriorityPrint("Closing socket");
 				socket.close();
 			}
-			out.lowPriorityPrint("Receiver is shutting down");
+			out.highPriorityPrint("Receiver is shutting down");
 		}
 	}
 }

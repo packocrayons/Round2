@@ -72,7 +72,7 @@ public class Client {
 			} catch (IllegalAccessException  e) {
 				err.handleLocalAccessViolation(null, null, 0);
 			}catch (Throwable t) {
-				out.highPriorityPrint(t.getMessage());
+				System.err.println (t.getMessage());
 			}
 	}
 
@@ -89,7 +89,7 @@ public class Client {
 					socket.receive(ack0);
 					break; //if we got it, leave the loop
 				} catch (SocketTimeoutException e){
-					out.lowPriorityPrint("Timed out, retransmitting the write request");
+					out.highPriorityPrint("Timeout,  client retransmits the write request");
 					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 				}
 			}
@@ -115,7 +115,7 @@ public class Client {
 		} catch (FileNotFoundException e) {
 			err.handleLocalFileNotFound(null, null, 0);
 		} catch (Throwable t) {
-			out.highPriorityPrint(t.getMessage());
+			System.err.println (t.getMessage());
 		}
 	}
 	
