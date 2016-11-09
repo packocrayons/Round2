@@ -41,6 +41,7 @@ public class IntermediateHost{
 	private DatagramSocket wellKnownSocket, serverSocket, clientSocket;
 	private InetAddress clientAdd, serverAdd; //currently unused but should be implemented at some point, still there so the methods don't break
 	private int clientPort, serverPort;
+	private boolean clientConnected = false;
 	private static final PacketFactory pf = new PacketFactory();
 	public IntermediateHost(){
 		this(new ArrayList<PacketFX>()); //send it an empty array
@@ -85,7 +86,7 @@ public class IntermediateHost{
 					for (int i = 0; i < fx.size(); ++i) {
 						if (fx.get(i).getPacketType().equals(t) && fx.get(i).getPacketNumber() == packetNum){ //TODO effect the packet (ideally by calling affectThisPacket
 							System.out.println("Affecting this packet");
-	 						return fx.get(i);
+	 						return fx.remove(i);
 						}
 					}
 					return null;
@@ -95,7 +96,7 @@ public class IntermediateHost{
 					for (int i = 0; i < fx.size(); ++i) {
 						if (fx.get(i).getPacketType().equals(t)){ //TODO effect the packet (ideally by calling affectThisPacket
 							System.out.println("Affecting this packet");
-	 						return fx.get(i);
+	 						return fx.remove(i);
 						}
 					}
 					return null;
@@ -131,11 +132,15 @@ public class IntermediateHost{
 				public void run() {
 					try{
 						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
+						System.out.println("WellKnownPortListener running");
 						while(true){
-							receiveFromSocket(wellKnownSocket,d); //receive a packet on the well known socket
-							newClientSocket();
+//							receiveFromSocket(wellKnownSocket,d); //receive a packet on the well known socket
+							wellKnownSocket.receive(d);
+							newClientSocket(); //generate new server and client sockets - everything needs to be disconnected  to restart
+							newServerSocket();
 							updateClientAddress(d.getAddress(), d.getPort());
-							clientSocket.connect(clientAdd, clientPort);
+//							clientSocket.connect(clientAdd, clientPort);
+							connectToClientSocket(clientAdd, clientPort);
 							Packet p = pf.getPacket(d.getData(), d.getLength());
 							System.out.println("\nReceived a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" on the well known port");
 							PacketFX effect;
@@ -193,6 +198,7 @@ public class IntermediateHost{
 						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
 						while(true){
 							boolean good = false;
+							while(!isClientPortConnected()); //wait until we know what port to listen to
 							try{
 								receiveFromSocket(clientSocket, d);
 								good = true;
@@ -283,7 +289,7 @@ public class IntermediateHost{
 				 				} else { //if this particular packet was not affected, send it normally
 									System.out.println("Sending it to the client port : " + clientPort);
 									System.out.println("");
-									sendFromSocket(serverSocket, p);
+									sendFromSocket(clientSocket, p);
 								}
 							}
 						}
@@ -322,6 +328,25 @@ public class IntermediateHost{
 			//t.printStackTrace();
 			throw new RuntimeException(t.getMessage());
 		}
+	}
+	
+	private synchronized void newServerSocket(){		
+		try{
+			serverSocket.close();
+			serverSocket = new DatagramSocket();
+		}catch(Throwable t){
+			//t.printStackTrace();
+			throw new RuntimeException(t.getMessage());
+		}
+	}
+	
+	private synchronized void connectToClientSocket(InetAddress clientAdd, int clientPort) {
+		clientSocket.connect(clientAdd, clientPort);
+		clientConnected = true; //required because we can't let the clientListener start listening to a port until we know what port. 
+	}
+	
+	private synchronized boolean isClientPortConnected(){
+		return clientConnected;
 	}
 	
 	/*private synchronized void sendToClient(Packet p){
