@@ -413,7 +413,7 @@ public class IntermediateHost{
 						String s;
 						for (int i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
-							effectArgs[i] = Integer.parseInt(s);
+							effectArgs[i] = Integer.parseInt(s.replaceAll("", ""));
 						}
 						
 						int packetNumber = Integer.parseInt(packetNum);
