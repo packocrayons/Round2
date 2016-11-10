@@ -38,6 +38,10 @@ public class AcknowledgementPacket extends Packet {
 		return number;
 	}
 	
+	public boolean acknowledges(int dataBlockNumber){
+		return (dataBlockNumber & 0xffff) == (number & 0xffff);
+	}
+	
 	//@Override
 	public byte[] getBytes() {
 		return bytes.clone();
