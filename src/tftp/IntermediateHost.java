@@ -406,14 +406,14 @@ public class IntermediateHost{
 						StringTokenizer token = new StringTokenizer(line, " "); //split the string by spaces
 						PacketType packetType;				//setup for the constructor
 						EffectType effectType;
-						int[] effectArgs = new int[4];//support up to 4 arguments
+						Integer[] effectArgs = new Integer[4];//support up to 4 arguments
 						String type = token.nextToken(); //what to do to the packet
 						String pType = token.nextToken(); //what type of packet to affect
 						String packetNum = token.nextToken(); //which packet to drop
 						String s;
 						for (int i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
-							effectArgs[i] = Integer.parseInt(s.replaceAll("", ""));
+							effectArgs[i] = new Integer(s.replaceAll("", ""));
 						}
 						
 						int packetNumber = Integer.parseInt(packetNum);

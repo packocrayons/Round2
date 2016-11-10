@@ -20,9 +20,9 @@ public class PacketFX {
 	private int packetNumber; //which packet number to affect
 	private PacketType packetType; //which type of packet to affect
 	private EffectType effect; //REFACTOR this will probably be an ENUM later
-	private int effectArgs[];
+	private Object effectArgs[];
 
-	public PacketFX(int packetNumber, PacketType packetType, EffectType effect, int[] effectArgs){
+	public PacketFX(int packetNumber, PacketType packetType, EffectType effect, Object[] effectArgs){
 		this.packetNumber = packetNumber;
 		this.packetType = packetType;
 		this.effect = effect;
@@ -42,7 +42,12 @@ public class PacketFX {
 				@Override
 				public void run(){
 					try {
-						Thread.sleep(effectArgs[PACKETDELAYTIMEINDEX]);
+						if (effectArgs[PACKETDELAYTIMEINDEX] instanceof Integer){
+							Thread.sleep((Integer)effectArgs[PACKETDELAYTIMEINDEX]);
+						} else {
+							sleepUntilNotified(effectArgs[PACKETDELAYTIMEINDEX]);
+						}
+							
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -54,10 +59,14 @@ public class PacketFX {
 			new Thread(new Runnable(){
 				@Override
 				public void run(){
-					for (int x = 0; x < effectArgs[PACKETDUPLICATEQUANTITYINDEX]; ++x){
+					for (int x = 0; x < (Integer)effectArgs[PACKETDUPLICATEQUANTITYINDEX]; ++x){
 						i.sendFromSocket(s, p);
 						try {
-							Thread.sleep(effectArgs[PACKETDUPLICATETIMEBETWEENINDEX]);
+							if (effectArgs[PACKETDUPLICATETIMEBETWEENINDEX] instanceof Integer){
+								Thread.sleep((Integer)effectArgs[PACKETDUPLICATETIMEBETWEENINDEX]);
+							} else {
+								sleepUntilNotified(effectArgs[PACKETDUPLICATETIMEBETWEENINDEX]);
+							}
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
@@ -82,5 +91,17 @@ public class PacketFX {
 	
 	public int getPacketNumber(){
 		return packetNumber;
+	}
+	
+	public synchronized void sleepUntilNotified(Object condition){
+		FXCondition c = (FXCondition) condition; //assume that it's valid
+		while(!c.isMet()){
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} //wait until the 
+		}
 	}
 }
