@@ -13,11 +13,13 @@ import packets.WriteRequestPacket;
 
 public class ServerOutputHandler implements OutputHandler {
 
+	private boolean quiet = false;
+	
 	@Override
 	public void lowPriorityPrint(Object o) {
-		
+		if(!quiet){
 			if (o instanceof String){
-				System.out.println("Client: "+o);
+				System.out.println("Server: "+o);
 			}
 			else if (o instanceof DatagramPacket){
 				DatagramPacket p= (DatagramPacket)o;
@@ -55,7 +57,7 @@ public class ServerOutputHandler implements OutputHandler {
 		    }
 	           
 	        System.out.println();
-	
+		}
 		
 	}
 
@@ -64,5 +66,14 @@ public class ServerOutputHandler implements OutputHandler {
 		System.out.println(getsToStringedAndPrinted);
 	}
 
+	@Override
+	public boolean getQuiet(){
+		return quiet;
+	}
+	
+	@Override
+	public void setQuiet(boolean newQuiet){
+		quiet=newQuiet;
+	}
 }
 

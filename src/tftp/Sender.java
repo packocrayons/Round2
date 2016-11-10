@@ -64,10 +64,17 @@ public class Sender implements Runnable {
 			while(true){
 				try{
 					socket.receive(receiveWith);
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(receiveWith);
 					break; //if we got it, leave the loop
 				} catch (SocketTimeoutException e){
-					out.lowPriorityPrint("Timed out, retransmitting");
+					out.highPriorityPrint("Timed out, retransmitting");
 					socket.send(retransmit); //keep trying to send the datagram
+					out.lowPriorityPrint("Sending packet to :" );
+					out.lowPriorityPrint(retransmit);
+					out.lowPriorityPrint("Packet type: DATA\n Block number " + number+"\n Number of bytes: "+( retransmit.getLength()-4));
+		    
+					
 					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 					numberOfRetransmit+=1;
 					if(numberOfRetransmit==MAXNUMBERTIMEOUT)break;
@@ -83,8 +90,8 @@ public class Sender implements Runnable {
 			
 			if(p.getType().equals(PacketType.ACK)){
 				AcknowledgementPacket ap = (AcknowledgementPacket)p;
-				
-				out.lowPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
+				if (out.getQuiet())	out.highPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
+				out.lowPriorityPrint(ap);
 				
 				/*DEPRECATED
 				if(ap.getNumber() != number){
@@ -148,7 +155,10 @@ public class Sender implements Runnable {
 				DatagramPacket datagram = new DatagramPacket(dp.getBytes(), dp.getBytes().length, address, port);
 				socket.send(datagram);
 				
-				out.lowPriorityPrint("Sending Data"+dp.getNumber()+" to port:"+datagram.getPort()+"\nIt is "+dp.getBytes().length+" bytes long");
+				if (out.getQuiet())out.highPriorityPrint("Sending Data"+dp.getNumber()+" to port:"+datagram.getPort()+"\nIt is "+dp.getBytes().length+" bytes long");
+				out.lowPriorityPrint("Sending packet to :");
+				out.lowPriorityPrint(datagram);
+				out.lowPriorityPrint(dp);
 				
 				if (!getValidAckPacket(ack, datagram, number)) break; //if something goes wrong - at the moment only an error packet causes this to return false
 
@@ -186,7 +196,7 @@ public class Sender implements Runnable {
 				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
-			out.lowPriorityPrint("Sender is shutting down");
+			out.highPriorityPrint("Sender is shutting down");
 		}
 	}
 	

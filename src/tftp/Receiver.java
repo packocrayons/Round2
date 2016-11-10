@@ -71,6 +71,10 @@ public class Receiver implements Runnable {
 				while(true){
 					try{
 						socket.receive(datagramIn);
+						
+						out.lowPriorityPrint("Packet received from :" );
+						out.lowPriorityPrint(datagramIn);
+						
 						break; //if we got it, leave the loop
 					} catch (SocketTimeoutException e){
 						numberOfTimeout+=1;
@@ -113,19 +117,18 @@ public class Receiver implements Runnable {
 							throw new RuntimeException("The packet receved is some unimplemented error type");
 						}
 					}else{
-						throw new RuntimeException("The wrong type of packet was receved, it was not Data or Error");
+						throw new RuntimeException("The wrong type of packet was received, it was not Data or Error");
 					}
 					close();
 					out.highPriorityPrint("Transmission failed");
 					break;
 				}
 				DataPacket dp = (DataPacket)p;
-				out.highPriorityPrint("Data packet #"+dp.getNumber()+" receved. It has "+dp.getFilePart().length+" bytes");
-				/* print the data to be writen to disk
-				for(byte b : dp.getFilePart()){
-					System.out.print((char) b);
+				if (out.getQuiet()){//quiet
+					out.highPriorityPrint("Data packet #"+dp.getNumber()+" received. It has "+dp.getFilePart().length+" bytes");
 				}
-				*/
+				out.lowPriorityPrint(dp);
+				
 				System.out.print("\n");
 				if(dp.getNumber() == lastBlockNumber){
 					out.highPriorityPrint("It is a retransmition/duplicate packet");
@@ -157,8 +160,13 @@ public class Receiver implements Runnable {
 	}
 
 	private void ack(int n) throws IOException{
-		out.highPriorityPrint("Sending ack #"+n);
-		socket.send(new AcknowledgementPacket(n).asDatagramPacket(address, port));
+		if (out.getQuiet())	out.highPriorityPrint("Sending ack #"+n);
+		DatagramPacket ackPack=new AcknowledgementPacket(n).asDatagramPacket(address, port);
+		
+		socket.send(ackPack);
+		out.lowPriorityPrint("Sending packet to:");
+		out.lowPriorityPrint(ackPack);
+		out.lowPriorityPrint(new AcknowledgementPacket(n));
 	}
 	
 	private boolean writeOut(byte[] data){
@@ -184,7 +192,7 @@ public class Receiver implements Runnable {
 	private synchronized void close(){
 		if(!closed){
 			closed = true;
-			out.highPriorityPrint("Closing file stream");
+			out.lowPriorityPrint("Closing file stream");
 			try {
 				this.file.close();
 			} catch (IOException e) {
@@ -197,7 +205,7 @@ public class Receiver implements Runnable {
 			}
 			
 			if(closeItWhenDone){
-				out.highPriorityPrint("Closing socket");
+				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
 			out.highPriorityPrint("Receiver is shutting down");

@@ -12,4 +12,8 @@ public interface OutputHandler {
 	
 	//for the stuff that quiet mode should NOT keep quiet
 	public abstract void highPriorityPrint(Object getsToStringedAndPrinted);
+	
+	public abstract boolean getQuiet();
+	
+	public abstract void setQuiet(boolean newQuiet);
 }

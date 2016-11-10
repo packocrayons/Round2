@@ -121,7 +121,15 @@ public class ClientUI implements Runnable, OutputHandler {
 		System.out.println(getsToStringedAndPrinted);
 	}
 	
+	@Override
+	public boolean getQuiet(){
+		return quiet;
+	}
 	
+	@Override
+	public void setQuiet(boolean newQuiet){
+		quiet=newQuiet;
+	}
 
 }
 

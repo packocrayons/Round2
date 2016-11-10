@@ -69,6 +69,9 @@ public class Server implements Runnable{
 				//this causes the SocketException that breaks from the loop.
 				try{
 					serverSocket.receive(requestDatagram);
+
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(requestDatagram);
 				}catch(SocketException e){
 					break;
 				}
@@ -77,7 +80,12 @@ public class Server implements Runnable{
 				//add printed info here.
 				if(p.getType().equals(PacketType.RRQ)){
 					ReadRequestPacket r = (ReadRequestPacket)p;
-					System.out.println("Reading requested file");
+					out.lowPriorityPrint(r);
+					if(out.getQuiet()){//quiet
+						out.highPriorityPrint("Server receiving RRQ from client");
+					}
+					out.highPriorityPrint("Reading requested file");
+					
 					DatagramSocket sendingSocketRRQ = new DatagramSocket();
 					
 					try{
@@ -91,6 +99,10 @@ public class Server implements Runnable{
 					
 				}else if(p.getType().equals(PacketType.WRQ)){
 					WriteRequestPacket r1 = (WriteRequestPacket) p;
+					out.lowPriorityPrint(r1);
+					if(out.getQuiet()){//quiet
+						out.highPriorityPrint("Server receiving WRQ from client");
+					}
 					DatagramSocket sendingSocketWRQ = new DatagramSocket();
 					
 					try{
@@ -98,8 +110,17 @@ public class Server implements Runnable{
 						OutputStream output = fFac.writeFile(r1.getFilePath());
 						AcknowledgementPacket ap = new AcknowledgementPacket(0);
 						byte[] ackPayload = ap.getBytes();
+						DatagramPacket ackPack=new DatagramPacket(ackPayload, ackPayload.length, requestDatagram.getAddress(), requestDatagram.getPort());
 						//No need to timeout here . If the ack is lost or delayed the sender will send the request again ? 
-						sendingSocketWRQ.send(new DatagramPacket(ackPayload, ackPayload.length, requestDatagram.getAddress(), requestDatagram.getPort()));
+						sendingSocketWRQ.send(ackPack);
+						if(out.getQuiet()){
+							out.highPriorityPrint("Server sending ack0 to client");
+						}
+						//print info of packet sent
+						out.lowPriorityPrint("Sending packet to :" );
+						out.lowPriorityPrint(ackPack);
+						out.lowPriorityPrint(ap);
+						
 						new Thread(new Receiver(err, out, output, sendingSocketWRQ, true)).start();//non-blocking
 
 					}catch(IllegalAccessException e){
@@ -138,12 +159,17 @@ public class Server implements Runnable{
 		
 		new Thread(server).start();
 		System.out.println("The server has started");
+		System.out.println("Type 'toggle quiet' to switch to quiet mode.");
 		System.out.println("Type 'quit' to shutdown the server");
 		Scanner scanner=new Scanner(System.in);
 	    while (true) {
 	        String input = scanner.nextLine();
 	        if(input.toLowerCase().contains("quit")){
 	        	break;
+	        }
+	        else if (input.toLowerCase().contains("toggle quiet")){
+	        	server.out.setQuiet(!server.out.getQuiet());
+	        	System.out.println(server.out.getQuiet()?("Quiet mode is now active"):("Quiet mode is now inactive"));
 	        }
 	        
 	    }
