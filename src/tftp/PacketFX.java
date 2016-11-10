@@ -93,9 +93,29 @@ public class PacketFX {
 		return packetNumber;
 	}
 	
+	public class FXCondition {
+		private boolean conditionMet;
+		private Packet conditionPacket;
+		
+		public FXCondition(Packet cPacket){
+			conditionPacket = cPacket;
+			conditionMet = false;
+		}
+		
+		public void tryMeetCondition(Packet p){
+			synchronized(PacketFX.this){
+				
+			}
+		}
+		
+		public boolean isMet(){
+			return conditionMet;
+		}
+	}
+	
 	public synchronized void sleepUntilNotified(Object condition){
 		FXCondition c = (FXCondition) condition; //assume that it's valid
-		while(!c.isMet()){
+		while(!c.isMet()){ //wait until you're notified AND your condition is met.
 			try {
 				wait();
 			} catch (InterruptedException e) {
@@ -103,5 +123,6 @@ public class PacketFX {
 				e.printStackTrace();
 			} //wait until the 
 		}
+		return;
 	}
 }
