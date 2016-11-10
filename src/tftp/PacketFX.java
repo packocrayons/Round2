@@ -2,6 +2,7 @@ package tftp;
 
 import packets.Packet;
 
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
 import packets.PacketType;
@@ -32,27 +33,38 @@ public class PacketFX {
 	//assumes effectThisPacket has already validated this packet.
 	//In theory this could be called with a lambda, it would make it more versatile. perhaps in a later refactor but for now this works.
 	public void sendEffectPacket(DatagramSocket s, Packet p, SendReceiveInterface i){ //affect the packet based on effect, then send it (if it's not dropped)
-		switch(effect){ //REFACTOR fix this once effect is an enum
+		switch(effect){ //REFACTOR fix this once effect is an
 		case DROP: //drop packet
 			//do nothing, the packet disappears
 			break;
 		case DELAY: //delay packet
-			try {
-				Thread.sleep(effectArgs[PACKETDELAYTIMEINDEX]);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			i.sendFromSocket(s, p);
+			new Thread(new Runnable(){ //start a new thread to delay the packet, this is required because we have to do other things while we delay the packet
+				@Override
+				public void run(){
+					try {
+						Thread.sleep(effectArgs[PACKETDELAYTIMEINDEX]);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					i.sendFromSocket(s, p);
+				}
+			}).start();
 			break;
-		case DUPLICATE: //duplicate packet
-			for (int x = 0; x < effectArgs[PACKETDUPLICATEQUANTITYINDEX]; ++x){
-				i.sendFromSocket(s, p);
-				try {
-					Thread.sleep(effectArgs[PACKETDUPLICATETIMEBETWEENINDEX]);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+		case DUPLICATE: //duplicate packet, start a new thread for this - see delay for explanation
+			new Thread(new Runnable(){
+				@Override
+				public void run(){
+					for (int x = 0; x < effectArgs[PACKETDUPLICATEQUANTITYINDEX]; ++x){
+						i.sendFromSocket(s, p);
+						try {
+							Thread.sleep(effectArgs[PACKETDUPLICATETIMEBETWEENINDEX]);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
 				}
 			}
+			).start();
 			break;
 		case NOTHING:
 			i.sendFromSocket(s, p); //don't do anything to the packet

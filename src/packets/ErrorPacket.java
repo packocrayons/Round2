@@ -1,4 +1,9 @@
 
+
+	
+	
+
+
 package packets;
 
 import java.util.Arrays;
@@ -76,10 +81,6 @@ public class ErrorPacket extends Packet {
 		return err;
 	}
 	
-	@Override
-	public int getNumber(){
-		return -1;
-	}
 	
 	public String getMessage(){
 		return message;

@@ -61,7 +61,9 @@ public class Receiver implements Runnable {
 			int lastBlockNumber = 0;
 			byte[] buffer = new byte[Packet.getBufferSize()];
 			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
+
 			out.highPriorityPrint("Receiver waiting for Data packet");
+
 			
 			while(true){
 				
