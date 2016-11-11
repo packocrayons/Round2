@@ -83,20 +83,38 @@ public class IntermediateHost{
 			 */
 			class HandlerParent extends Thread{
 				protected PacketFX checkEffectPacket(int packetNum, PacketType t){
+					PacketFX effect;
 					for (int i = 0; i < fx.size(); ++i) {
-						if (fx.get(i).getPacketType().equals(t) && fx.get(i).getPacketNumber() == packetNum){ //TODO effect the packet (ideally by calling affectThisPacket
-							System.out.println("Affecting this packet");
-	 						return fx.remove(i);
+						effect = fx.get(i); //fetch it once
+						if (effect.hasCondition){
+							effect.tryMeetCondition(t, packetNum);
+						}
+						if (effect.getPacketType().equals(t) && fx.get(i).getPacketNumber() == packetNum){ //TODO effect the packet (ideally by calling affectThisPacket
+							System.out.println("Affecting this packet " + t.getHumanReadableName() + " : " + packetNum);
+							if (!effect.hasCondition) {
+								return fx.remove(i);
+							} else {
+								return effect;
+							}
 						}
 					}
 					return null;
 				}
 				
 				protected PacketFX checkEffectPacket(PacketType t){
+					PacketFX effect;
 					for (int i = 0; i < fx.size(); ++i) {
-						if (fx.get(i).getPacketType().equals(t)){ //TODO effect the packet (ideally by calling affectThisPacket
+						effect = fx.get(i); //fetch it once
+						if (effect.hasCondition){
+							effect.tryMeetCondition(t, 0);
+						}
+						if (effect.getPacketType().equals(t)){ //TODO effect the packet (ideally by calling affectThisPacket
 							System.out.println("Affecting this packet");
-	 						return fx.remove(i);
+							if (!effect.hasCondition) {
+								return fx.remove(i);
+							} else {
+								return effect;
+							}
 						}
 					}
 					return null;
@@ -132,7 +150,6 @@ public class IntermediateHost{
 				public void run() {
 					try{
 						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
-						System.out.println("WellKnownPortListener running");
 						while(true){
 //							receiveFromSocket(wellKnownSocket,d); //receive a packet on the well known socket
 							wellKnownSocket.receive(d);
@@ -153,7 +170,6 @@ public class IntermediateHost{
 							} else {//this packet doesn't have a number, if it matches our packet, we effect it
 								effect = checkEffectPacket(p.getType());
 							}
-							System.out.println("Testing if this packet should be affected");
 							
 			 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
 			 					effect.sendEffectPacket(serverSocket, p, this);
@@ -206,18 +222,16 @@ public class IntermediateHost{
 							if(good){
 								Packet p = pf.getPacket(d.getData(), d.getLength());
 								System.out.println("Received a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" from the client : " + d.getPort());
-								System.out.println("Testing if this packet should be affected");
 								PacketFX effect;
 								if (p.getType().equals(PacketType.DATA)){ //if this packet is a data packet
 									DataPacket pt = (DataPacket) p;
 									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
 								} else if (p.getType() == PacketType.ACK){ //if this packet is an ack packet
 									AcknowledgementPacket pt = (AcknowledgementPacket) p;
-									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+									effect = checkEffectPacket(pt.getNumber(), PacketType.ACK);
 								} else {//this packet doesn't have a number, if it matches our packet, we effect it
 									effect = checkEffectPacket(p.getType());
 								}
-								System.out.println("Testing if this packet should be affected");
 								
 				 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
 				 					effect.sendEffectPacket(serverSocket, p, this);
@@ -278,14 +292,13 @@ public class IntermediateHost{
 									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
 								} else if (p.getType() == PacketType.ACK){ //if this packet is an ack packet
 									AcknowledgementPacket pt = (AcknowledgementPacket) p;
-									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+									effect = checkEffectPacket(pt.getNumber(), PacketType.ACK);
 								} else {//this packet doesn't have a number, if it matches our packet, we effect it
 									effect = checkEffectPacket(p.getType());
 								}
-								System.out.println("Testing if this packet should be affected");
 								
 				 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
-				 					effect.sendEffectPacket(serverSocket, p, this);
+				 					effect.sendEffectPacket(clientSocket, p, this);
 				 				} else { //if this particular packet was not affected, send it normally
 									System.out.println("Sending it to the client port : " + clientPort);
 									System.out.println("");
@@ -376,6 +389,23 @@ public class IntermediateHost{
 		}
 	}*/ //DEPRECATED
 	
+	public static FXCondition parseFXCondition(String packet, int num){
+		
+		if (packet.equalsIgnoreCase("ack")){
+			return new FXCondition(PacketType.ACK, num);
+		} else if (packet.equalsIgnoreCase("data")){
+			return new FXCondition(PacketType.DATA, num);
+		} else if (packet.equalsIgnoreCase("readrequest")){ //these are separate
+			return new FXCondition(PacketType.RRQ);
+		} else if (packet.equalsIgnoreCase("writerequest")){
+			return new FXCondition(PacketType.WRQ);
+		} else if (packet.equalsIgnoreCase("error")){
+			return new FXCondition(PacketType.ERR);
+		} else {
+			return new FXCondition(PacketType.IDC);
+		}
+	}
+	
 	public static ArrayList<PacketFX> parsePacketFX(){
 		FileFactory ff;
 		ff = new FileFactory(".\\intermediateHost");
@@ -406,14 +436,28 @@ public class IntermediateHost{
 						StringTokenizer token = new StringTokenizer(line, " "); //split the string by spaces
 						PacketType packetType;				//setup for the constructor
 						EffectType effectType;
-						Integer[] effectArgs = new Integer[4];//support up to 4 arguments
+						Object[] effectArgs = new Object[4];//support up to 4 arguments
 						String type = token.nextToken(); //what to do to the packet
 						String pType = token.nextToken(); //what type of packet to affect
 						String packetNum = token.nextToken(); //which packet to drop
-						String s;
-						for (int i = 0; token.hasMoreTokens(); ++i){
+						String s = null;
+						int i;
+						for (i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
+							if (s.equalsIgnoreCase("cond")) break; //there's a condition
 							effectArgs[i] = new Integer(s.replaceAll("", ""));
+						}
+						
+						if (s != null){ //if it's supposed to be a condition
+							s = token.nextToken();
+							if (token.hasMoreTokens()){ 
+								System.out.println("more tokens"); //DEBUG
+								String x = token.nextToken();
+								System.out.println(Integer.parseInt(x));
+								effectArgs[i] = parseFXCondition(s, Integer.parseInt(x));
+							} else { 
+								effectArgs[i] = parseFXCondition(s, 0); //assume that they got the language right, this condition doesn't have a number, so it doesn't matter
+							}
 						}
 						
 						int packetNumber = Integer.parseInt(packetNum);

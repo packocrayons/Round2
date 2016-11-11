@@ -1,5 +1,7 @@
 package tftp;
 
+import packets.AcknowledgementPacket;
+import packets.DataPacket;
 import packets.Packet;
 
 import java.net.DatagramPacket;
@@ -21,18 +23,31 @@ public class PacketFX {
 	private PacketType packetType; //which type of packet to affect
 	private EffectType effect; //REFACTOR this will probably be an ENUM later
 	private Object effectArgs[];
+	protected boolean hasCondition;
+	private boolean enabled = true;
 
 	public PacketFX(int packetNumber, PacketType packetType, EffectType effect, Object[] effectArgs){
 		this.packetNumber = packetNumber;
 		this.packetType = packetType;
 		this.effect = effect;
 		this.effectArgs = effectArgs;
+		for (int i = 0; i < effectArgs.length; ++i) if (effectArgs[i] instanceof FXCondition) hasCondition = true;
 	}
-
-
+	
+	public void tryMeetCondition(PacketType p, int num){
+		for(int i = 0; i < effectArgs.length; ++i){
+			if (effectArgs[i] instanceof FXCondition) ((FXCondition)effectArgs[i]).tryMeetCondition(p, num);
+		}
+	}
+	
 	//assumes effectThisPacket has already validated this packet.
 	//In theory this could be called with a lambda, it would make it more versatile. perhaps in a later refactor but for now this works.
 	public void sendEffectPacket(DatagramSocket s, Packet p, SendReceiveInterface i){ //affect the packet based on effect, then send it (if it's not dropped)
+		if (!enabled) {
+			i.sendFromSocket(s, p); //send the packet along as normal
+			return; //this is here so that the effect can hang around to have the condition met
+		}
+		enabled = false; //we've passed the "enabled barrier", we're the only one that's allowed to use the effect.
 		switch(effect){ //REFACTOR fix this once effect is an
 		case DROP: //drop packet
 			//do nothing, the packet disappears
@@ -51,6 +66,7 @@ public class PacketFX {
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
+					System.out.println("Sending delayed packet");
 					i.sendFromSocket(s, p);
 				}
 			}).start();
@@ -60,6 +76,7 @@ public class PacketFX {
 				@Override
 				public void run(){
 					for (int x = 0; x < (Integer)effectArgs[PACKETDUPLICATEQUANTITYINDEX]; ++x){
+						System.out.println("Sending duplicate packet " + x);
 						i.sendFromSocket(s, p);
 						try {
 							if (effectArgs[PACKETDUPLICATETIMEBETWEENINDEX] instanceof Integer){
@@ -93,36 +110,21 @@ public class PacketFX {
 		return packetNumber;
 	}
 	
-	public class FXCondition {
-		private boolean conditionMet;
-		private Packet conditionPacket;
-		
-		public FXCondition(Packet cPacket){
-			conditionPacket = cPacket;
-			conditionMet = false;
-		}
-		
-		public void tryMeetCondition(Packet p){
-			synchronized(PacketFX.this){
-				
+	public void sleepUntilNotified(Object condition){
+		FXCondition c = (FXCondition)condition; //assume that it's valid
+		synchronized(c){
+			System.out.println("Blocking, waiting for condition");
+			while(!c.isMet()){ //wait until you're notified AND your condition is met.
+				try {
+					c.wait();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} //wait until the 
 			}
 		}
-		
-		public boolean isMet(){
-			return conditionMet;
-		}
-	}
-	
-	public synchronized void sleepUntilNotified(Object condition){
-		FXCondition c = (FXCondition) condition; //assume that it's valid
-		while(!c.isMet()){ //wait until you're notified AND your condition is met.
-			try {
-				wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} //wait until the 
-		}
+		System.out.println("Condition was met, freed from block");
+		hasCondition = false; //remove this condition - this will free up processor time
 		return;
 	}
 }
