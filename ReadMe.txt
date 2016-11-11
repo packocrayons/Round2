@@ -13,11 +13,21 @@ The Error Simulation (port 23) communicates with the client and the server using
 The ErrorSimulator uses a context-free language to read it's actions towards packets, the language is described as follows:
 	program packetType packetNumber [args]
 	Available 'programs' are :
-	drop [noArgs]
-	delay [timeInMillis]
-	duplicate [timeBetweenPacketsMillis numberOfDuplicates]
+	drop (packet) (packetNum) [noArgs]
+	delay (packet) (packetNum) [timeInMillis]
+	duplicate (packet) (packetNum) [numberOfDuplicates timeBetweenDuplicates]
 	#lines that begin with '#' are comments and are ignored, there is no multi-line commenting, or beginning a comment mid-line
-Currently the simulator reads from [project dir]/bin/tftp/IHErrorFile.txt, there is a symlink to this file in [project dir].
+Times can be replaced with conditions - conditions are met on specific packets, for example,
+	delay ack 4 cond data 7
+will delay acknowledgement packet 4 until the intermediate host sees data packet 7.
+Available packets are :
+	ack
+	data
+	readrequest
+	writerequest
+	error
+Currently the simulator reads from [project dir]/intermediateHost/IHErrorFile.txt.
+(note - for packets that do not have associated numbers - like an error packet or readrequest/writerequest, any valid number should be put in place as a placeholder)
 
 
 The Server(port 69) consists of multiple Java threads. Thus capable of supporting multiple concurrent read and write connections with different clients.
