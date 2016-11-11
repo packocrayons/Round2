@@ -88,6 +88,13 @@ public class Sender implements Runnable {
 			else{
 				numberOfRetransmit=0;
 			}
+			
+			//if it's not from the right sender just discard the message for IT3
+			if(receiveWith.getAddress()!=address || receiveWith.getPort()!=port){
+				out.highPriorityPrint("this packet comes from another sender -> discarded");
+				break;
+			}
+			
 			Packet p = pfac.getPacket(receiveWith.getData(),receiveWith.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){

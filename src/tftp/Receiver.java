@@ -102,6 +102,13 @@ public class Receiver implements Runnable {
 					senderFound = true;
 				}
 
+				
+				//if it's not from the right sender just discard the message for IT3
+				if(datagramIn.getAddress()!=address || datagramIn.getPort()!=port){
+					out.highPriorityPrint("this packet comes from another sender -> discarded");
+					break;
+				}
+				
 				//check the input
 				Packet p = pFac.getPacket(datagramIn);
 				if(!p.getType().equals(PacketType.DATA)){
