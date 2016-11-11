@@ -10,8 +10,7 @@ import java.net.InetAddress;
  */
 public abstract class Packet {
 	public abstract byte[] getBytes();
-	public abstract PacketType getType();
-	public abstract int getNumber(); //this returns -1 for packets that don't have a packet number. This is required so that the intermediateHost can figure out if any given packet should be effected 
+	public abstract PacketType getType(); 
 	public static int getBufferSize(){
 		return 65527;
 	}

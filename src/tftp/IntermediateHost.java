@@ -1,6 +1,7 @@
 
 package tftp;
 
+
 //import java.io.BufferedReader;
 //import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,10 +11,13 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import packets.AcknowledgementPacket;
+import packets.DataPacket;
 //import packets.AcknowledgementPacket;
 //import packets.DataPacket;
 import packets.Packet;
@@ -35,19 +39,30 @@ public class IntermediateHost{
 	private static char IHERRORFILECOMMENTCHAR = '#';
 	
 	private DatagramSocket wellKnownSocket, serverSocket, clientSocket;
-	private InetAddress clientAdd, serverAdd; //currently unused but should be implemented at some point
-	private int clientPort, serverPort; //currently unused but should be implemented at some point
+	private InetAddress clientAdd, serverAdd; //currently unused but should be implemented at some point, still there so the methods don't break
+	private int clientPort, serverPort;
+	private boolean clientConnected = false;
 	private static final PacketFactory pf = new PacketFactory();
-	private PacketFX[] effects;
-	
 	public IntermediateHost(){
-		this(new PacketFX[0]); //send it an empty array
+		this(new ArrayList<PacketFX>()); //send it an empty array
 	}
 
 
+//	public void setClientPort(int pnum){
+//		clientPort = pnum;
+//	}
+//	
+//	public void setServerPort(int pnum){
+//		serverPort = pnum;
+//	}
+//	
+//	public int getClientPort()
+//	
+	
 	//this constructor now takes arguments. The original is still in place
-	public IntermediateHost(PacketFX[] fx) {
-		effects = fx;
+	public IntermediateHost(ArrayList<PacketFX> fx) {
+		clientPort = 0;
+		serverPort = 0;
 		try {
 			wellKnownSocket = new DatagramSocket(23);
 			serverSocket = new DatagramSocket();
@@ -63,18 +78,45 @@ public class IntermediateHost{
 			 */
 			
 			
+			/*This is the parent for all of the portHandlers, to clean up duplicate code
+			 * 
+			 */
+			class HandlerParent extends Thread{
+				protected PacketFX checkEffectPacket(int packetNum, PacketType t){
+					for (int i = 0; i < fx.size(); ++i) {
+						if (fx.get(i).getPacketType().equals(t) && fx.get(i).getPacketNumber() == packetNum){ //TODO effect the packet (ideally by calling affectThisPacket
+							System.out.println("Affecting this packet");
+	 						return fx.remove(i);
+						}
+					}
+					return null;
+				}
+				
+				protected PacketFX checkEffectPacket(PacketType t){
+					for (int i = 0; i < fx.size(); ++i) {
+						if (fx.get(i).getPacketType().equals(t)){ //TODO effect the packet (ideally by calling affectThisPacket
+							System.out.println("Affecting this packet");
+	 						return fx.remove(i);
+						}
+					}
+					return null;
+				}
+				
+			}
+			
+			
 			/*NEW
 			 * There are three classes, WellKnownPortHandler, ClientPortHandler, and ServerPortHandler. They all extend thread and they all implement SendReceiveInterface so that PacketFX can control them
 			 * When they want to send a normal packet, they do so by calling their sendFromSocket function. When they want to affect a packet, they call sendEffectPacket with the arguments to sendFromSocket. Since they all implement an interface, sendEffectPacket knows how to call their sendFromSocket function
 			 */
 			
 			//this one listens on port23 and forwards to port 69
-			class WellKnownPortHandler extends Thread implements SendReceiveInterface{
+			class WellKnownPortHandler extends HandlerParent implements SendReceiveInterface{
 				
 				@Override
 				public void sendFromSocket(DatagramSocket s, Packet p){
 					try{
-						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), 69)); //destination in the WellKnownPortHandler case is always 69
+						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), 69));//destination in the wellknownPortHandler case is always 69
 					}catch(Throwable t){
 						//t.printStackTrace();
 						throw new RuntimeException(t.getMessage());
@@ -83,29 +125,39 @@ public class IntermediateHost{
 				
 				@Override
 				public void receiveFromSocket(DatagramSocket s, DatagramPacket d) throws IOException{
-					return;
+					s.receive(d);
 				}
 				
 				@Override
 				public void run() {
 					try{
 						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
+						System.out.println("WellKnownPortListener running");
 						while(true){
-							wellKnownSocket.receive(d); //receive a packet on the well known socket
-							newClientSocket();
+//							receiveFromSocket(wellKnownSocket,d); //receive a packet on the well known socket
+							wellKnownSocket.receive(d);
+							newClientSocket(); //generate new server and client sockets - everything needs to be disconnected  to restart
+							newServerSocket();
 							updateClientAddress(d.getAddress(), d.getPort());
+//							clientSocket.connect(clientAdd, clientPort);
+							connectToClientSocket(clientAdd, clientPort);
 							Packet p = pf.getPacket(d.getData(), d.getLength());
 							System.out.println("\nReceived a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" on the well known port");
-							System.out.println("Testing if this packet should be affected");
-							boolean packetAffectedFlag = false;
-							for (int i = 0; i < effects.length; ++i) {
-								if (effects[i].getPacketType() == p.getType() && effects[i].getPacketNumber() == p.getNumber()){ //TODO effect the packet (ideally by calling affectThisPacket
-									System.out.println("Affecting this packet");
-			 						effects[i].sendEffectPacket(serverSocket, p, this);
-			 						packetAffectedFlag = true;
-								}
+							PacketFX effect;
+							if (p.getType().equals(PacketType.DATA)){ //if this packet is a data packet
+								DataPacket pt = (DataPacket) p;
+								effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+							} else if (p.getType() == PacketType.ACK){ //if this packet is an ack packet
+								AcknowledgementPacket pt = (AcknowledgementPacket) p;
+								effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+							} else {//this packet doesn't have a number, if it matches our packet, we effect it
+								effect = checkEffectPacket(p.getType());
 							}
-							if(!packetAffectedFlag){ //if this particular packet was not affected, send it normally
+							System.out.println("Testing if this packet should be affected");
+							
+			 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
+			 					effect.sendEffectPacket(serverSocket, p, this);
+			 				} else { //if this particular packet was not affected, send it normally
 								System.out.println("Sending it to the server's well known port");
 								System.out.println("");
 								sendFromSocket(serverSocket, p);
@@ -123,12 +175,77 @@ public class IntermediateHost{
 			
 			
 			//listens on the client port, and sends to the server port
-			class ClientPortHandler extends Thread implements SendReceiveInterface{
+			class ClientPortHandler extends HandlerParent implements SendReceiveInterface{
 
 				@Override
 				public void sendFromSocket(DatagramSocket s, Packet p){
 					try{
-						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), 69)); //destination in the WellKnownPortHandler case is always 69
+						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), serverPort)); //destination is serverPort - set by a previous receive 
+					}catch(Throwable t){
+						//t.printStackTrace();
+						throw new RuntimeException(t.getMessage());
+					}
+				}
+				
+				@Override
+				public void receiveFromSocket(DatagramSocket s, DatagramPacket d) throws IOException{
+					s.receive(d);
+				}
+				
+				@Override
+				public void run() {
+					try{
+						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
+						while(true){
+							boolean good = false;
+							while(!isClientPortConnected()); //wait until we know what port to listen to
+							try{
+								receiveFromSocket(clientSocket, d);
+								good = true;
+							}catch(Throwable t){}
+							if(good){
+								Packet p = pf.getPacket(d.getData(), d.getLength());
+								System.out.println("Received a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" from the client : " + d.getPort());
+								System.out.println("Testing if this packet should be affected");
+								PacketFX effect;
+								if (p.getType().equals(PacketType.DATA)){ //if this packet is a data packet
+									DataPacket pt = (DataPacket) p;
+									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+								} else if (p.getType() == PacketType.ACK){ //if this packet is an ack packet
+									AcknowledgementPacket pt = (AcknowledgementPacket) p;
+									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+								} else {//this packet doesn't have a number, if it matches our packet, we effect it
+									effect = checkEffectPacket(p.getType());
+								}
+								System.out.println("Testing if this packet should be affected");
+								
+				 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
+				 					effect.sendEffectPacket(serverSocket, p, this);
+				 				} else { //if this particular packet was not affected, send it normally
+									System.out.println("Sending it to the server transfer port : " + serverPort);
+									System.out.println("");
+									sendFromSocket(serverSocket, p);
+								}
+							}
+						}
+					}catch(Throwable t){
+						t.printStackTrace();
+						throw new RuntimeException(t);
+					}
+				}
+			
+			
+			}
+			
+			new ClientPortHandler().start();
+			
+			//listens on the server port, updates the server's location, and sends to the client
+			class ServerPortHandler extends HandlerParent implements SendReceiveInterface{
+
+				@Override
+				public void sendFromSocket(DatagramSocket s, Packet p){
+					try{
+						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), clientPort)); //destination is clientPort, set by a previous receive
 					}catch(Throwable t){
 						//t.printStackTrace();
 						throw new RuntimeException(t.getMessage());
@@ -147,78 +264,33 @@ public class IntermediateHost{
 						while(true){
 							boolean good = false;
 							try{
-								receiveFromSocket(clientSocket, d);
+								receiveFromSocket(serverSocket, d);
 								good = true;
-							}catch(Throwable t){}
-							if(good){
+							} catch (Throwable t){}
+							if (good){
+								updateServerAddress(d.getAddress(), d.getPort());
+								serverSocket.connect(serverAdd, serverPort);
 								Packet p = pf.getPacket(d.getData(), d.getLength());
-								System.out.println("Received a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" from the client");
+								System.out.println("Received a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" from the server : " + d.getPort());
+								PacketFX effect;
+								if (p.getType().equals(PacketType.DATA)){ //if this packet is a data packet
+									DataPacket pt = (DataPacket) p;
+									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+								} else if (p.getType() == PacketType.ACK){ //if this packet is an ack packet
+									AcknowledgementPacket pt = (AcknowledgementPacket) p;
+									effect = checkEffectPacket(pt.getNumber(), PacketType.DATA);
+								} else {//this packet doesn't have a number, if it matches our packet, we effect it
+									effect = checkEffectPacket(p.getType());
+								}
 								System.out.println("Testing if this packet should be affected");
-								boolean packetAffectedFlag = false;
-								for (int i = 0; i < effects.length; ++i) {
-									if (effects[i].getPacketType() == p.getType() && effects[i].getPacketNumber() == p.getNumber()){
-										System.out.println("Affecting this packet");
-				 						effects[i].sendEffectPacket(serverSocket, p, this);
-				 						packetAffectedFlag = true;
-									}
-								}
-								if(!packetAffectedFlag){ //if this particular packet was not affected, send it normally
-									System.out.println("Sending it to the server port");
+								
+				 				if(effect != null){ //if one of the above if statements picked up an effect, then mess with the packet.
+				 					effect.sendEffectPacket(serverSocket, p, this);
+				 				} else { //if this particular packet was not affected, send it normally
+									System.out.println("Sending it to the client port : " + clientPort);
 									System.out.println("");
-									sendFromSocket(serverSocket, p); //send it  normally - but use the newly implemented interface
+									sendFromSocket(clientSocket, p);
 								}
-							}
-						}
-					}catch(Throwable t){
-						t.printStackTrace();
-						throw new RuntimeException(t);
-					}
-				}
-			
-			
-			}
-			
-			new ClientPortHandler().start();
-			
-			//listens on the server port, updates the server's location, and sends to the client
-			class ServerPortHandler extends Thread implements SendReceiveInterface{
-
-				@Override
-				public void sendFromSocket(DatagramSocket s, Packet p){
-					try{
-						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), 69)); //destination in the WellKnownPortHandler case is always 69
-					}catch(Throwable t){
-						//t.printStackTrace();
-						throw new RuntimeException(t.getMessage());
-					}
-				}
-				
-				@Override
-				public void receiveFromSocket(DatagramSocket s, DatagramPacket d) throws IOException{
-					s.receive(d);
-				}
-				
-				@Override
-				public void run() {
-					try{
-						DatagramPacket d = new DatagramPacket(new byte[Packet.getBufferSize()],Packet.getBufferSize());
-						while(true){
-							serverSocket.receive(d);
-							updateServerAddress(d.getAddress(), d.getPort());
-							Packet p = pf.getPacket(d.getData(), d.getLength());
-							System.out.println("Received a packet of type ["+p.getType().getHumanReadableName()+"] and length "+p.getBytes().length+" from the server");
-							boolean packetAffectedFlag = false;
-							for (int i = 0; i < effects.length; ++i) {
-								if (effects[i].getPacketType() == p.getType() && effects[i].getPacketNumber() == p.getNumber()){
-									System.out.println("Affecting this packet");
-			 						effects[i].sendEffectPacket(clientSocket, p, this);
-			 						packetAffectedFlag = true;
-								}
-							}
-							if(!packetAffectedFlag){ //if this particular packet was not affected, send it normally
-								System.out.println("Sending it to the server port");
-								System.out.println("");
-								sendFromSocket(clientSocket, p); //send it  normally - but use the newly implemented interface
 							}
 						}
 					}catch(Throwable t){
@@ -258,6 +330,25 @@ public class IntermediateHost{
 		}
 	}
 	
+	private synchronized void newServerSocket(){		
+		try{
+			serverSocket.close();
+			serverSocket = new DatagramSocket();
+		}catch(Throwable t){
+			//t.printStackTrace();
+			throw new RuntimeException(t.getMessage());
+		}
+	}
+	
+	private synchronized void connectToClientSocket(InetAddress clientAdd, int clientPort) {
+		clientSocket.connect(clientAdd, clientPort);
+		clientConnected = true; //required because we can't let the clientListener start listening to a port until we know what port. 
+	}
+	
+	private synchronized boolean isClientPortConnected(){
+		return clientConnected;
+	}
+	
 	/*private synchronized void sendToClient(Packet p){
 		try{
 			clientSocket.send(new DatagramPacket(p.getBytes(), p.getBytes().length, this.clientAdd, this.clientPort));
@@ -285,12 +376,11 @@ public class IntermediateHost{
 		}
 	}*/ //DEPRECATED
 	
-	public static PacketFX[] generatePacketFX(){
+	public static ArrayList<PacketFX> parsePacketFX(){
 		FileFactory ff;
-		ff = new FileFactory(".");
+		ff = new FileFactory(".\\intermediateHost");
 		
-		
-		PacketFX FX[] = new PacketFX[10]; //currently support is for up to 10 effects
+		ArrayList<PacketFX> FX = new ArrayList<PacketFX>(); //this is an array list, support lots of effects
 		
 		Scanner sc;
 		try {
@@ -309,7 +399,6 @@ public class IntermediateHost{
 			String line = null; //so that the first time through the loop works if the file is empty
 			System.out.println("An IHErrorFile.txt was found, parsing");
 			{ //leftover scoping bracket
-				int FXindex = 0; //keeping track of where we insert the next effect, needed because not every line of the file is an effect
 				while (IHErrorTokenizer.hasMoreTokens()){ //read each line - this is context free
 					line = IHErrorTokenizer.nextToken();
 					System.out.println("line read: " + line); //DEBUG
@@ -324,7 +413,7 @@ public class IntermediateHost{
 						String s;
 						for (int i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
-							effectArgs[i] = Integer.parseInt(s);
+							effectArgs[i] = Integer.parseInt(s.replaceAll("", ""));
 						}
 						
 						int packetNumber = Integer.parseInt(packetNum);
@@ -354,7 +443,7 @@ public class IntermediateHost{
 						}
 						
 						System.out.println("New FX generated : packetNumber = " + packetNumber + " packetType = " + packetType.getHumanReadableName() + " effectArgs = " + Arrays.toString(effectArgs));
-						FX[FXindex++] = new PacketFX(packetNumber, packetType, effectType, effectArgs);
+						FX.add(new PacketFX(packetNumber, packetType, effectType, effectArgs));
 					}else System.out.println("Comment ignored");//if not a commentChar
 				} //while loop
 			}//leftover scoping bracket
@@ -367,7 +456,7 @@ public class IntermediateHost{
 		System.out.print("Intermediate Host started\n");
 
 		System.out.print("Waiting for packet");
-		new IntermediateHost(generatePacketFX());
+		new IntermediateHost(parsePacketFX());
 	}
 }
 

@@ -32,7 +32,7 @@ public class ClientController {
 			client.readFile(path, InetAddress.getLocalHost(), (testMode)?23:69); //try to get the client to read the file
 		}catch(Throwable t){
 			//throw new RuntimeException(t.getMessage());
-			System.out.println("The file you are trying to read does not exist.");
+			System.out.println("Client : The file you are trying to read does not exist at this path.");
 		}
 	
 		
@@ -43,7 +43,7 @@ public class ClientController {
 			client.writeFile(path, InetAddress.getLocalHost(), (testMode)?23:69);
 		}catch(Throwable t){
 			//throw new RuntimeException(t.getMessage());
-			System.out.println("The file you are trying to write does not exist.");
+			System.out.println("Client : The file you are trying to write does not exist at this path.");
 		}
 		
 	}
