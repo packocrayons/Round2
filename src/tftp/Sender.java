@@ -31,6 +31,7 @@ public class Sender implements Runnable {
 	private final OutputHandler out;
 	
 	private final InputStream file;
+	private final String fileName;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
 	private final InetAddress address;
@@ -40,10 +41,11 @@ public class Sender implements Runnable {
 	
 	private boolean closed = false;
 	
-	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port){
+	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port,String fname){
 		this.err = err;
 		this.out = out;
 		this.file = file;
+		this.fileName=fname;
 		this.socket = socket;
 		try {
 			this.socket.setSoTimeout(SENDINGPORTTIMEOUT);
@@ -64,10 +66,17 @@ public class Sender implements Runnable {
 			while(true){
 				try{
 					socket.receive(receiveWith);
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(receiveWith);
 					break; //if we got it, leave the loop
 				} catch (SocketTimeoutException e){
-					out.lowPriorityPrint("Timed out, retransmitting");
+					out.highPriorityPrint("Timed out, retransmitting");
 					socket.send(retransmit); //keep trying to send the datagram
+					out.lowPriorityPrint("Sending packet to :" );
+					out.lowPriorityPrint(retransmit);
+					out.lowPriorityPrint("Packet type: DATA\n Block number " + number+"\n Number of bytes: "+( retransmit.getLength()-4));
+		    
+					
 					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 					numberOfRetransmit+=1;
 					if(numberOfRetransmit==MAXNUMBERTIMEOUT)break;
@@ -79,18 +88,21 @@ public class Sender implements Runnable {
 			else{
 				numberOfRetransmit=0;
 			}
+			
+			//if it's not from the right sender just discard the message for IT3
+			if(receiveWith.getAddress()!=address || receiveWith.getPort()!=port){
+				out.highPriorityPrint("this packet comes from another sender -> discarded");
+				break;
+			}
+			
 			Packet p = pfac.getPacket(receiveWith.getData(),receiveWith.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){
 				AcknowledgementPacket ap = (AcknowledgementPacket)p;
+				if (out.getQuiet())	out.highPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
+				out.lowPriorityPrint(ap);
 				
-				out.lowPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
 				
-				/*DEPRECATED
-				if(ap.getNumber() != number){
-					throw new RuntimeException("This is the wrong acknowledgement");
-				}
-				*/
 				
 				if(ap.getNumber() < number){ //if it's less than we're working with right now, it's a duplicate ack
 					//SORCERER'S APPRENTICE BUG - DO NOTHING
@@ -106,11 +118,11 @@ public class Sender implements Runnable {
 				if(p.getType().equals(PacketType.ERR)){
 					ErrorPacket er = (ErrorPacket)p;
 					if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-						err.handleRemoteAccessViolation(socket, address, port);
+						err.handleRemoteAccessViolation(socket, address, port,er);
 					}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-						err.handleRemoteAllocationExceeded(socket, address, port);
+						err.handleRemoteAllocationExceeded(socket, address, port,er);
 					}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-						err.handleRemoteFileNotFound(socket, address, port);//error Here need handleRemoteFileNotfound
+						err.handleRemoteFileNotFound(socket, address, port,er);//error Here need handleRemoteFileNotfound
 					}else{
 						throw new RuntimeException("The packet receved is some unimplemented error type");
 					}
@@ -136,7 +148,7 @@ public class Sender implements Runnable {
 				try{
 					readSize = file.read(fileBuffer);
 				}catch(IOException e){
-					err.handleLocalAccessViolation(socket, address, port);
+					err.handleLocalAccessViolation(socket, address, port,fileName);
 					break;
 				}
 				
@@ -148,7 +160,10 @@ public class Sender implements Runnable {
 				DatagramPacket datagram = new DatagramPacket(dp.getBytes(), dp.getBytes().length, address, port);
 				socket.send(datagram);
 				
-				out.lowPriorityPrint("Sending Data"+dp.getNumber()+" to port:"+datagram.getPort()+"\nIt is "+dp.getBytes().length+" bytes long");
+				if (out.getQuiet())out.highPriorityPrint("Sending Data"+dp.getNumber()+" to port:"+datagram.getPort()+"\nIt is "+dp.getBytes().length+" bytes long");
+				out.lowPriorityPrint("Sending packet to :");
+				out.lowPriorityPrint(datagram);
+				out.lowPriorityPrint(dp);
 				
 				if (!getValidAckPacket(ack, datagram, number)) break; //if something goes wrong - at the moment only an error packet causes this to return false
 
@@ -186,7 +201,7 @@ public class Sender implements Runnable {
 				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
-			out.lowPriorityPrint("Sender is shutting down");
+			out.highPriorityPrint("Sender is shutting down");
 		}
 	}
 	

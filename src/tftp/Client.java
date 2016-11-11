@@ -33,6 +33,7 @@ public class Client {
 	private static final int SENDINGPORTTIMEOUT = 2000;
 	private final DatagramSocket socket;
 	private final FileFactory fFac;
+	private final PacketFactory pfac = new PacketFactory();
 	private ErrorHandler err;
 	private OutputHandler out;
 	
@@ -66,12 +67,22 @@ public class Client {
 			try {
 				OutputStream output = fFac.writeFile(filePath);
 				ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
-				socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
-				new Receiver(err, out, output, socket, false).run();
+				DatagramPacket request =new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
+				
+				socket.send(request);
+				if(out.getQuiet()){
+					out.highPriorityPrint("Client sending RRQ to Server");
+				}
+				//print info of packet sent
+				out.lowPriorityPrint("Sending packet to :" );
+				out.lowPriorityPrint(request);
+				out.lowPriorityPrint(rq);
+				
+				new Receiver(err, out, output, socket, false,filePath).run();
 			} catch (IllegalAccessException  e) {
-				err.handleLocalAccessViolation(null, null, 0);
+				err.handleLocalAccessViolation(null, null, 0,filePath);
 			}catch (Throwable t) {
-				out.highPriorityPrint(t.getMessage());
+				System.err.println (t.getMessage());
 			}
 	}
 
@@ -79,16 +90,28 @@ public class Client {
 		try {
 			InputStream input = fFac.readFile(filePath);
 			WriteRequestPacket rq = new WriteRequestPacket(filePath, FileType.OCTET);
+			DatagramPacket request =new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
 			DatagramPacket ack0 = new DatagramPacket(new byte[Packet.getBufferSize()], AcknowledgementPacket.getBufferSize());
 			
 			
 			while(true){
 				try{
-					socket.send(new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port));
+					socket.send(request);
+					//print info of packet sent
+					if(out.getQuiet()){
+						out.highPriorityPrint("Client sending WRQ to Server");
+					}
+					out.lowPriorityPrint("Sending packet to :" );
+					out.lowPriorityPrint(request);
+					out.lowPriorityPrint(rq);
+					
 					socket.receive(ack0);
+					//print some info of packet received
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(ack0);
 					break; //if we got it, leave the loop
 				} catch (SocketTimeoutException e){
-					out.lowPriorityPrint("Timed out, retransmitting the write request");
+					out.highPriorityPrint("Timeout,  client retransmits the write request");
 					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 				}
 			}
@@ -98,23 +121,29 @@ public class Client {
 			Packet p = pfac.getPacket(ack0.getData(), ack0.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){
+				//print rest of info 
+				if(out.getQuiet()){
+					out.highPriorityPrint("Client receiving ack0 from server");
+				}
+				out.lowPriorityPrint((AcknowledgementPacket)p);
+				
 				if(((AcknowledgementPacket)(p)).getNumber() != 0){
 					//change needed here to handle delay/loss
 					throw new RuntimeException("This is the wrong Ack");
 				}
-				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort()).run();
+				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort(),filePath).run();
 			}else if(p.getType().equals(PacketType.ERR)){
 				ErrorPacket ep = (ErrorPacket)p;
 				if(ep.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-					err.handleRemoteAccessViolation(null, null, 0);
+					err.handleRemoteAccessViolation(null, null, 0,ep);
 				}
 			}
 		} catch (IllegalAccessException e) {
-			err.handleLocalAccessViolation(null, null, 0);
+			err.handleLocalAccessViolation(null, null, 0,filePath);
 		} catch (FileNotFoundException e) {
-			err.handleLocalFileNotFound(null, null, 0);
+			err.handleLocalFileNotFound(null, null, 0,filePath);
 		} catch (Throwable t) {
-			out.highPriorityPrint(t.getMessage());
+			System.err.println (t.getMessage());
 		}
 	}
 	

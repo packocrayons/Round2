@@ -32,6 +32,7 @@ public class Receiver implements Runnable {
 	private static final int MAXNUMBERTIMEOUT = 4;
 	
 	private final OutputStream file;
+	private final String fileName;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
 	private final PacketFactory pFac = new PacketFactory();
@@ -41,10 +42,11 @@ public class Receiver implements Runnable {
 	private int port;
 	private int numberOfTimeout=0;
 	
-	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone){
+	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone,String fname){
 		this.err = err;
 		this.out = out;
 		this.file = file;
+		this.fileName=fname;
 		this.socket = socket;
 		try {
 			this.socket.setSoTimeout(RECEIVINGPORTTIMEOUT);
@@ -61,7 +63,9 @@ public class Receiver implements Runnable {
 			int lastBlockNumber = 0;
 			byte[] buffer = new byte[Packet.getBufferSize()];
 			DatagramPacket datagramIn = new DatagramPacket(buffer, buffer.length);
-			out.lowPriorityPrint("Receiver preparing to loop");
+
+			out.highPriorityPrint("Receiver waiting for Data packet");
+
 			
 			while(true){
 				
@@ -69,10 +73,15 @@ public class Receiver implements Runnable {
 				while(true){
 					try{
 						socket.receive(datagramIn);
+						
+						out.lowPriorityPrint("Packet received from :" );
+						out.lowPriorityPrint(datagramIn);
+						
 						break; //if we got it, leave the loop
 					} catch (SocketTimeoutException e){
-						out.lowPriorityPrint("Timed out, no retransmit from the receiver");
 						numberOfTimeout+=1;
+						out.highPriorityPrint("Timed out ("+numberOfTimeout+") no retransmit from the receiver");
+						
 						if(numberOfTimeout==MAXNUMBERTIMEOUT)break;
 						//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
 					}
@@ -86,48 +95,57 @@ public class Receiver implements Runnable {
 				}
 				
 				if(!senderFound){
-					out.lowPriorityPrint("Recording sender address");
+					
 					address = datagramIn.getAddress();
 					port = datagramIn.getPort();
+					out.highPriorityPrint("Recording sender address"+ address +" and sender port :"+port);
 					senderFound = true;
 				}
 
+				
+				//if it's not from the right sender just discard the message for IT3
+				if(datagramIn.getAddress()!=address || datagramIn.getPort()!=port){
+					out.highPriorityPrint("this packet comes from another sender -> discarded");
+					break;
+				}
+				
 				//check the input
 				Packet p = pFac.getPacket(datagramIn);
 				if(!p.getType().equals(PacketType.DATA)){
 					if(p.getType().equals(PacketType.ERR)){
 						ErrorPacket er = (ErrorPacket)p;
-						out.lowPriorityPrint("Error packet receved of type "+er.getErrorType());
+						
+						if(out.getQuiet())out.highPriorityPrint("Error packet received of type "+er.getErrorType()+" with the following message"+er.getMessage());
+						
 						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-							err.handleRemoteAccessViolation(socket, address, port);
+							err.handleRemoteAccessViolation(socket, address, port,er);
 						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-							err.handleRemoteAllocationExceeded(socket, address, port);
+							err.handleRemoteAllocationExceeded(socket, address, port,er);
 						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-							err.handleRemoteFileNotFound(socket, address, port);
+							err.handleRemoteFileNotFound(socket, address, port,er);
 						}else{
 							throw new RuntimeException("The packet receved is some unimplemented error type");
 						}
 					}else{
-						throw new RuntimeException("The wrong type of packet was receved, it was not Data or Error");
+						throw new RuntimeException("The wrong type of packet was received, it was not Data or Error");
 					}
 					close();
-					out.highPriorityPrint("Transmission faild");
+					out.highPriorityPrint("Transmission failed");
 					break;
 				}
 				DataPacket dp = (DataPacket)p;
-				out.lowPriorityPrint("Data packet #"+dp.getNumber()+" receved. It has "+dp.getFilePart().length+" bytes");
-				/* print the data to be writen to disk
-				for(byte b : dp.getFilePart()){
-					System.out.print((char) b);
+				if (out.getQuiet()){//quiet
+					out.highPriorityPrint("Data packet #"+dp.getNumber()+" received. It has "+dp.getFilePart().length+" bytes");
 				}
-				*/
+				out.lowPriorityPrint(dp);
+				
 				System.out.print("\n");
 				if(dp.getNumber() == lastBlockNumber){
-					out.lowPriorityPrint("It was a retransmition/duplicate");
+					out.highPriorityPrint("It is a retransmition/duplicate packet");
 					//we received a retransition of the last block
 					ack(lastBlockNumber);
 				}else if(dp.comesAfter(lastBlockNumber)){
-					out.lowPriorityPrint("It was the next block");
+					out.highPriorityPrint("It is the expected block (next block)");
 					//we received the next block
 					writeOut(dp.getFilePart());
 					lastBlockNumber = (lastBlockNumber+1) & 0xffff; 
@@ -152,8 +170,13 @@ public class Receiver implements Runnable {
 	}
 
 	private void ack(int n) throws IOException{
-		out.lowPriorityPrint("Sending ack #"+n);
-		socket.send(new AcknowledgementPacket(n).asDatagramPacket(address, port));
+		if (out.getQuiet())	out.highPriorityPrint("Sending ack #"+n);
+		DatagramPacket ackPack=new AcknowledgementPacket(n).asDatagramPacket(address, port);
+		
+		socket.send(ackPack);
+		out.lowPriorityPrint("Sending packet to:");
+		out.lowPriorityPrint(ackPack);
+		out.lowPriorityPrint(new AcknowledgementPacket(n));
 	}
 	
 	private boolean writeOut(byte[] data){
@@ -166,7 +189,7 @@ public class Receiver implements Runnable {
 			if(Objects.toString(e.getMessage(), "").toLowerCase().contains("space left on")){//"No space left on device"
 				err.handleLocalAllocationExceeded(socket, address, port);
 			}else{
-				err.handleLocalAccessViolation(socket, address, port);
+				err.handleLocalAccessViolation(socket, address, port,fileName);
 			}
 			return false;
 		}
@@ -195,7 +218,7 @@ public class Receiver implements Runnable {
 				out.lowPriorityPrint("Closing socket");
 				socket.close();
 			}
-			out.lowPriorityPrint("Receiver is shutting down");
+			out.highPriorityPrint("Receiver is shutting down");
 		}
 	}
 }
