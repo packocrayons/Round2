@@ -78,9 +78,9 @@ public class Client {
 				out.lowPriorityPrint(request);
 				out.lowPriorityPrint(rq);
 				
-				new Receiver(err, out, output, socket, false).run();
+				new Receiver(err, out, output, socket, false,filePath).run();
 			} catch (IllegalAccessException  e) {
-				err.handleLocalAccessViolation(null, null, 0);
+				err.handleLocalAccessViolation(null, null, 0,filePath);
 			}catch (Throwable t) {
 				System.err.println (t.getMessage());
 			}
@@ -131,17 +131,17 @@ public class Client {
 					//change needed here to handle delay/loss
 					throw new RuntimeException("This is the wrong Ack");
 				}
-				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort()).run();
+				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort(),filePath).run();
 			}else if(p.getType().equals(PacketType.ERR)){
 				ErrorPacket ep = (ErrorPacket)p;
 				if(ep.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-					err.handleRemoteAccessViolation(null, null, 0);
+					err.handleRemoteAccessViolation(null, null, 0,ep);
 				}
 			}
 		} catch (IllegalAccessException e) {
-			err.handleLocalAccessViolation(null, null, 0);
+			err.handleLocalAccessViolation(null, null, 0,filePath);
 		} catch (FileNotFoundException e) {
-			err.handleLocalFileNotFound(null, null, 0);
+			err.handleLocalFileNotFound(null, null, 0,filePath);
 		} catch (Throwable t) {
 			System.err.println (t.getMessage());
 		}

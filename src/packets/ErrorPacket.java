@@ -35,9 +35,6 @@ public class ErrorPacket extends Packet {
 		
 		this.bytes=temp;
 		
-		for(byte b : bytes){
-			System.out.println(b+" : "+(char)b);
-		}
 		
 	}
 	
@@ -60,7 +57,7 @@ public class ErrorPacket extends Packet {
 			int messageStart = 4;
 			int messageEnd = messageStart;
 			while(data[++messageEnd] != (byte)0){}
-			if(messageEnd != data.length){
+			if(messageEnd != data.length-1){
 				throw new RuntimeException("This data contains too many 0s");
 			}
 			this.message = new String(Arrays.copyOfRange(data, messageStart, messageEnd));

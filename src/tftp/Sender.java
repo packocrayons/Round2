@@ -31,6 +31,7 @@ public class Sender implements Runnable {
 	private final OutputHandler out;
 	
 	private final InputStream file;
+	private final String fileName;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
 	private final InetAddress address;
@@ -40,10 +41,11 @@ public class Sender implements Runnable {
 	
 	private boolean closed = false;
 	
-	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port){
+	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port,String fname){
 		this.err = err;
 		this.out = out;
 		this.file = file;
+		this.fileName=fname;
 		this.socket = socket;
 		try {
 			this.socket.setSoTimeout(SENDINGPORTTIMEOUT);
@@ -93,11 +95,7 @@ public class Sender implements Runnable {
 				if (out.getQuiet())	out.highPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
 				out.lowPriorityPrint(ap);
 				
-				/*DEPRECATED
-				if(ap.getNumber() != number){
-					throw new RuntimeException("This is the wrong acknowledgement");
-				}
-				*/
+				
 				
 				if(ap.getNumber() < number){ //if it's less than we're working with right now, it's a duplicate ack
 					//SORCERER'S APPRENTICE BUG - DO NOTHING
@@ -113,11 +111,11 @@ public class Sender implements Runnable {
 				if(p.getType().equals(PacketType.ERR)){
 					ErrorPacket er = (ErrorPacket)p;
 					if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-						err.handleRemoteAccessViolation(socket, address, port);
+						err.handleRemoteAccessViolation(socket, address, port,er);
 					}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-						err.handleRemoteAllocationExceeded(socket, address, port);
+						err.handleRemoteAllocationExceeded(socket, address, port,er);
 					}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-						err.handleRemoteFileNotFound(socket, address, port);//error Here need handleRemoteFileNotfound
+						err.handleRemoteFileNotFound(socket, address, port,er);//error Here need handleRemoteFileNotfound
 					}else{
 						throw new RuntimeException("The packet receved is some unimplemented error type");
 					}
@@ -143,7 +141,7 @@ public class Sender implements Runnable {
 				try{
 					readSize = file.read(fileBuffer);
 				}catch(IOException e){
-					err.handleLocalAccessViolation(socket, address, port);
+					err.handleLocalAccessViolation(socket, address, port,fileName);
 					break;
 				}
 				

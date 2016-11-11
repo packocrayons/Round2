@@ -32,6 +32,7 @@ public class Receiver implements Runnable {
 	private static final int MAXNUMBERTIMEOUT = 4;
 	
 	private final OutputStream file;
+	private final String fileName;
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
 	private final PacketFactory pFac = new PacketFactory();
@@ -41,10 +42,11 @@ public class Receiver implements Runnable {
 	private int port;
 	private int numberOfTimeout=0;
 	
-	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone){
+	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone,String fname){
 		this.err = err;
 		this.out = out;
 		this.file = file;
+		this.fileName=fname;
 		this.socket = socket;
 		try {
 			this.socket.setSoTimeout(RECEIVINGPORTTIMEOUT);
@@ -105,14 +107,15 @@ public class Receiver implements Runnable {
 				if(!p.getType().equals(PacketType.DATA)){
 					if(p.getType().equals(PacketType.ERR)){
 						ErrorPacket er = (ErrorPacket)p;
-						out.highPriorityPrint("Error packet received of type "+er.getErrorType());
+						
+						if(out.getQuiet())out.highPriorityPrint("Error packet received of type "+er.getErrorType()+" with the following message"+er.getMessage());
 						
 						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-							err.handleRemoteAccessViolation(socket, address, port);
+							err.handleRemoteAccessViolation(socket, address, port,er);
 						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-							err.handleRemoteAllocationExceeded(socket, address, port);
+							err.handleRemoteAllocationExceeded(socket, address, port,er);
 						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-							err.handleRemoteFileNotFound(socket, address, port);
+							err.handleRemoteFileNotFound(socket, address, port,er);
 						}else{
 							throw new RuntimeException("The packet receved is some unimplemented error type");
 						}
@@ -179,7 +182,7 @@ public class Receiver implements Runnable {
 			if(Objects.toString(e.getMessage(), "").toLowerCase().contains("space left on")){//"No space left on device"
 				err.handleLocalAllocationExceeded(socket, address, port);
 			}else{
-				err.handleLocalAccessViolation(socket, address, port);
+				err.handleLocalAccessViolation(socket, address, port,fileName);
 			}
 			return false;
 		}

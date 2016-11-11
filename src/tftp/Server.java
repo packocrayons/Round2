@@ -80,6 +80,7 @@ public class Server implements Runnable{
 				//add printed info here.
 				if(p.getType().equals(PacketType.RRQ)){
 					ReadRequestPacket r = (ReadRequestPacket)p;
+					
 					out.lowPriorityPrint(r);
 					if(out.getQuiet()){//quiet
 						out.highPriorityPrint("Server receiving RRQ from client");
@@ -90,11 +91,11 @@ public class Server implements Runnable{
 					
 					try{
 						InputStream input = fFac.readFile(r.getFilePath());
-						new Thread(new Sender(err, out, input, sendingSocketRRQ, true, requestDatagram.getAddress(), requestDatagram.getPort())).start();
+						new Thread(new Sender(err, out, input, sendingSocketRRQ, true, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath())).start();
 					}catch(FileNotFoundException e){
-						err.handleLocalFileNotFound(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort());
+						err.handleLocalFileNotFound(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}catch(IllegalAccessException e){
-						err.handleLocalAccessViolation(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort());
+						err.handleLocalAccessViolation(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}
 					
 				}else if(p.getType().equals(PacketType.WRQ)){
@@ -121,10 +122,10 @@ public class Server implements Runnable{
 						out.lowPriorityPrint(ackPack);
 						out.lowPriorityPrint(ap);
 						
-						new Thread(new Receiver(err, out, output, sendingSocketWRQ, true)).start();//non-blocking
+						new Thread(new Receiver(err, out, output, sendingSocketWRQ, true,r1.getFilePath())).start();//non-blocking
 
 					}catch(IllegalAccessException e){
-						err.handleLocalAccessViolation(sendingSocketWRQ, requestDatagram.getAddress(), requestDatagram.getPort());
+						err.handleLocalAccessViolation(sendingSocketWRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r1.getFilePath());
 					}
 				}else{
 					throw new RuntimeException("This packet is not a valid read or write request");

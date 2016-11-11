@@ -19,13 +19,18 @@ public class ServerErrorHandler implements ErrorHandler {
 	}
 	
 	@Override
-	public void handleLocalFileNotFound(DatagramSocket socket, InetAddress address, int port) {
-		out.highPriorityPrint("The requested file cannot be found.");
+	public void handleLocalFileNotFound(DatagramSocket socket, InetAddress address, int port,String fname) {
+		out.highPriorityPrint("The requested file cannot be found on the server side.");
 		if(socket != null && address != null && port != 0){
 			//things happened after the connection was established.
-			ErrorPacket e = new ErrorPacket(ErrorType.FILE_NOT_FOUND);
+			ErrorPacket e = new ErrorPacket(ErrorType.FILE_NOT_FOUND,"file "+fname+" requested not found");
+			DatagramPacket errorPack=new DatagramPacket(e.getBytes(), e.getBytes().length, address, port);
 			try {
-				socket.send(new DatagramPacket(e.getBytes(), e.getBytes().length, address, port));
+				socket.send(errorPack);
+				
+				out.lowPriorityPrint("Sending Error Packet to :");
+				out.lowPriorityPrint(errorPack);
+				out.lowPriorityPrint(e);
 			} catch (IOException e1) {
 				//What the hell do I do if the error handler errors out?
 				e1.printStackTrace();
@@ -34,19 +39,23 @@ public class ServerErrorHandler implements ErrorHandler {
 	}
 
 	@Override
-	public void handleRemoteFileNotFound(DatagramSocket socket, InetAddress address, int port) {
+	public void handleRemoteFileNotFound(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep) {
 		//do nothing 
 		//the server does not need this
 	}
 
 	@Override
-	public void handleLocalAccessViolation(DatagramSocket socket, InetAddress address, int port) {
-		out.highPriorityPrint("The requested file cannot be accessed.");
+	public void handleLocalAccessViolation(DatagramSocket socket, InetAddress address, int port,String fname) {
+		out.highPriorityPrint("The requested file cannot be accessed in the server side.");
 		if(socket != null && address != null && port != 0){
 			//things happened after the connection was established.
-			ErrorPacket e = new ErrorPacket(ErrorType.ACCESS_VIOLATION);
+			ErrorPacket e = new ErrorPacket(ErrorType.ACCESS_VIOLATION,"File"+fname+" cannot be accessed");
+			DatagramPacket errorPack=new DatagramPacket(e.getBytes(), e.getBytes().length, address, port);
 			try {
-				socket.send(new DatagramPacket(e.getBytes(), e.getBytes().length, address, port));
+				socket.send(errorPack);
+				out.lowPriorityPrint("Sending Error Packet to :");
+				out.lowPriorityPrint(errorPack);
+				out.lowPriorityPrint(e);
 			} catch (IOException e1) {
 				//What the hell do I do if the error handler errors out?
 				e1.printStackTrace();
@@ -55,7 +64,8 @@ public class ServerErrorHandler implements ErrorHandler {
 	}
 
 	@Override
-	public void handleRemoteAccessViolation(DatagramSocket socket, InetAddress address, int port) {
+	public void handleRemoteAccessViolation(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep) {
+		out.lowPriorityPrint(ep);
 		out.highPriorityPrint("The file can nolonger be accessed by the client.");
 	}
 
@@ -64,9 +74,13 @@ public class ServerErrorHandler implements ErrorHandler {
 		out.highPriorityPrint("The server has run out of space");
 		if(socket != null && address != null && port != 0){
 			//things happened after the connection was established.
-			ErrorPacket e = new ErrorPacket(ErrorType.ALLOCATION_EXCEEDED);
+			ErrorPacket e = new ErrorPacket(ErrorType.ALLOCATION_EXCEEDED,"Server full");
+			DatagramPacket errorPack=new DatagramPacket(e.getBytes(), e.getBytes().length, address, port);
 			try {
-				socket.send(new DatagramPacket(e.getBytes(), e.getBytes().length, address, port));
+				socket.send(errorPack);
+				out.lowPriorityPrint("Sending Error Packet to :");
+				out.lowPriorityPrint(errorPack);
+				out.lowPriorityPrint(e);
 			} catch (IOException e1) {
 				//What the hell do I do if the error handler errors out?
 				e1.printStackTrace();
@@ -75,7 +89,8 @@ public class ServerErrorHandler implements ErrorHandler {
 	}
 
 	@Override
-	public void handleRemoteAllocationExceeded(DatagramSocket socket, InetAddress address, int port) {
+	public void handleRemoteAllocationExceeded(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep) {
+		out.lowPriorityPrint(ep);
 		out.highPriorityPrint("The client has run out of space");
 	}
 
