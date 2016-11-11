@@ -39,6 +39,7 @@ public class Sender implements Runnable {
 	private final PacketFactory pfac = new PacketFactory();
 	private int numberOfRetransmit=0;
 	
+	private boolean noLoopAround = true;	
 	private boolean closed = false;
 	
 	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port,String fname){
@@ -104,10 +105,10 @@ public class Sender implements Runnable {
 				
 				
 				
-				if(ap.getNumber() < number){ //if it's less than we're working with right now, it's a duplicate ack
+				if(ap.getNumber() < number || (ap.getNumber() > number && !noLoopAround)){ //if it's less than we're working with right now, it's a duplicate ack
 					//SORCERER'S APPRENTICE BUG - DO NOTHING
 					//we loop around and get a packet again.
-				} else if(ap.getNumber() > number){
+				} else if(ap.getNumber() > number && noLoopAround){ //haven't looped around yet - this packet is out of bounds
 					throw new RuntimeException("This acknowledgement is ahead of schedule");
 					//TODO not sure exactly what we're supposed to do here, but freaking out seems like as good a choice as any
 				} else { //it's not > and not <, it must be =. We successfully got a valid ack packet
@@ -144,7 +145,9 @@ public class Sender implements Runnable {
 			DataPacket dp;
 			DatagramPacket ack = new DatagramPacket(buffer, buffer.length);
 			int readSize = -1;
+			int counter = 1;
 			while(!closed){
+				if (counter > 0xffff) noLoopAround = false; //once we pass this value - we've looped around
 				try{
 					readSize = file.read(fileBuffer);
 				}catch(IOException e){
@@ -172,6 +175,7 @@ public class Sender implements Runnable {
 				if(readSize < 512){
 					break;
 				}
+				counter++; //increment the counter
 			
 			}
 			close();
