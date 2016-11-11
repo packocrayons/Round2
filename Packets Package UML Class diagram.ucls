@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<class-diagram version="1.1.11" icons="false" always-add-relationships="false" generalizations="true" 
-  realizations="true" associations="true" dependencies="false" nesting-relationships="true" router="FAN">  
+<class-diagram version="1.1.11" icons="false" automaticImage="PNG" always-add-relationships="false" 
+  generalizations="true" realizations="true" associations="true" dependencies="false" nesting-relationships="true" 
+  router="FAN">  
   <class id="1" language="java" name="packets.AcknowledgementPacket" project="Round2" 
     file="/Round2/src/packets/AcknowledgementPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="169" y="883"/>    
