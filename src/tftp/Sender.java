@@ -88,7 +88,7 @@ public class Sender implements Runnable {
 			}
 			
 			//if it's not from the right sender just discard the message for IT3
-			if(dp.getAddress()!=address || dp.getPort()!=port){
+			if(!dp.getAddress().equals(address) || dp.getPort()!=port){
 				out.highPriorityPrint("this packet comes from another sender -> discarded");
 			}else{
 				Packet p = pfac.getPacket(dp.getData(), dp.getLength());
@@ -129,7 +129,7 @@ public class Sender implements Runnable {
 	@Override
 	public void run(){
 		try{
-			int number = 1;
+			int number = 0;
 			byte[] fileBuffer = new byte[512];
 			DataPacket dp;
 			int readSize = -1;
@@ -146,7 +146,7 @@ public class Sender implements Runnable {
 				//this turns the -1 of an empty read into 0, to make it safer
 				readSize = Math.max(readSize, 0);
 				
-				dp = new DataPacket(number, fileBuffer, readSize);
+				dp = new DataPacket(++number, fileBuffer, readSize);
 				
 				DatagramPacket datagram = new DatagramPacket(dp.getBytes(), dp.getBytes().length, address, port);
 				socket.send(datagram);
@@ -160,8 +160,6 @@ public class Sender implements Runnable {
 					//an error packet arrived, or it took too long
 					break;
 				}
-
-				number++;
 				
 				if(readSize < 512){
 					break;
