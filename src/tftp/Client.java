@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 import packets.Packet;
@@ -29,8 +28,11 @@ import tftp.FileType;
  * @author Team 17
  */
 public class Client {
+
+	public static final int SENDER_TIMEOUT = 2000;//times out to retransmit
+	public static final int SENDER_TIMEOUT_MAX = 5;//if the sender retransmits this many times in a row, it closes
+	public static final int RECEIVER_TIMEOUT = 20000;//If the receiver times out once, it closes 
 	
-	private static final int SENDINGPORTTIMEOUT = 2000;
 	private final DatagramSocket socket;
 	private final FileFactory fFac;
 	private final PacketFactory pfac = new PacketFactory();
@@ -47,11 +49,6 @@ public class Client {
 			t.printStackTrace();
 			throw new RuntimeException(t.getMessage());
 		}
-		try {
-			socket.setSoTimeout(SENDINGPORTTIMEOUT);
-		} catch (SocketException e) {
-			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
-		}
 	}
 	
 	public Client(){
@@ -67,12 +64,12 @@ public class Client {
 			try {
 				OutputStream output = fFac.writeFile(filePath);
 				ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
-				DatagramPacket request =new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
+				DatagramPacket request = new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
 				
+				socket.setSoTimeout(RECEIVER_TIMEOUT);
 				socket.send(request);
-				if(out.getQuiet()){
-					out.highPriorityPrint("Client sending RRQ to Server");
-				}
+				out.highPriorityPrint("Client sending RRQ to Server");
+				
 				//print info of packet sent
 				out.lowPriorityPrint("Sending packet to :" );
 				out.lowPriorityPrint(request);
@@ -92,32 +89,27 @@ public class Client {
 			WriteRequestPacket rq = new WriteRequestPacket(filePath, FileType.OCTET);
 			DatagramPacket request =new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
 			DatagramPacket ack0 = new DatagramPacket(new byte[Packet.getBufferSize()], AcknowledgementPacket.getBufferSize());
+			socket.setSoTimeout(SENDER_TIMEOUT);
 			
-			
-			while(true){
-				try{
-					socket.send(request);
-					//print info of packet sent
-					if(out.getQuiet()){
-						out.highPriorityPrint("Client sending WRQ to Server");
-					}
-					out.lowPriorityPrint("Sending packet to :" );
-					out.lowPriorityPrint(request);
-					out.lowPriorityPrint(rq);
-					
-					socket.receive(ack0);
-					//print some info of packet received
-					out.lowPriorityPrint("Packet received from :" );
-					out.lowPriorityPrint(ack0);
-					break; //if we got it, leave the loop
-				} catch (SocketTimeoutException e){
-					out.highPriorityPrint("Timeout,  client retransmits the write request");
-					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
+			try{
+				socket.send(request);
+				//print info of packet sent
+				if(out.getQuiet()){
+					out.highPriorityPrint("Client sending WRQ to Server");
 				}
+				out.lowPriorityPrint("Sending packet to :" );
+				out.lowPriorityPrint(request);
+				out.lowPriorityPrint(rq);
+				
+				socket.receive(ack0);
+				//print some info of packet received
+				out.lowPriorityPrint("Packet received from :" );
+				out.lowPriorityPrint(ack0);
+			} catch (SocketTimeoutException e){
+				//TODO print something good
+				return;
 			}
 			
-			
-			PacketFactory pfac = new PacketFactory();
 			Packet p = pfac.getPacket(ack0.getData(), ack0.getLength());
 			
 			if(p.getType().equals(PacketType.ACK)){
@@ -131,7 +123,7 @@ public class Client {
 					//change needed here to handle delay/loss
 					throw new RuntimeException("This is the wrong Ack");
 				}
-				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort(),filePath).run();
+				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort(),filePath, SENDER_TIMEOUT_MAX).run();
 			}else if(p.getType().equals(PacketType.ERR)){
 				ErrorPacket ep = (ErrorPacket)p;
 				if(ep.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){

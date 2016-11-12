@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 import packets.AcknowledgementPacket;
@@ -23,9 +22,8 @@ import packets.PacketType;
  * @author Team 17
  */
 public class Sender implements Runnable {
-	
-	private static final int SENDINGPORTTIMEOUT = 2000; 
-	private static final int MAXNUMBERTIMEOUT = 4;
+	 
+	private final int maxTimeouts;
 
 	private final ErrorHandler err;
 	private final OutputHandler out;
@@ -37,21 +35,28 @@ public class Sender implements Runnable {
 	private final InetAddress address;
 	private final int port;
 	private final PacketFactory pfac = new PacketFactory();
-	private int numberOfRetransmit=0;
 	
 	private boolean closed = false;
 	
-	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port,String fname){
+	/**
+	 * 
+	 * @param err				The error handler that this Sender should use.
+	 * @param out				The Object that this should send all output
+	 * @param file				The InputStream that this reads from
+	 * @param socket			The socket to use, already configured with the  timeout time.
+	 * @param closeItWhenDone	Should this close the socket when it is done?
+	 * @param address			The address of the Receiver
+	 * @param port				The port of the Receiver
+	 * @param fname				The name of the file being transfered, used to give context to the output messages 
+	 * @param maxRetries		The number of times to retry, 0 for INTEGER.MAXVALUE
+	 */
+	public Sender(ErrorHandler err, OutputHandler out, InputStream file, DatagramSocket socket, boolean closeItWhenDone, InetAddress address, int port,String fname, int maxRetries){
 		this.err = err;
 		this.out = out;
 		this.file = file;
 		this.fileName=fname;
 		this.socket = socket;
-		try {
-			this.socket.setSoTimeout(SENDINGPORTTIMEOUT);
-		} catch (SocketException e) {
-			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
-		}
+		this.maxTimeouts = maxRetries;
 		this.closeItWhenDone = closeItWhenDone;	
 		this.address = address;
 		this.port = port;
@@ -59,77 +64,62 @@ public class Sender implements Runnable {
 	}
 
 	
-	private boolean getValidAckPacket(DatagramPacket receiveWith, DatagramPacket retransmit, int number) throws IOException{
+	private boolean getValidAckPacket(DataPacket data) throws IOException{
+		DatagramPacket dp = new DatagramPacket(new byte[Packet.getBufferSize()], Packet.getBufferSize());
+		
 		while(true){
-			//wait to receive the packet, or catch a SocketTimeoutException
-			//We're on the sending side, so we are responsible for retransmit
+			int numberOfRetransmit = 0;
 			while(true){
 				try{
-					socket.receive(receiveWith);
-					out.lowPriorityPrint("Packet received from :" );
-					out.lowPriorityPrint(receiveWith);
-					break; //if we got it, leave the loop
+					socket.receive(dp);
+					out.lowPriorityPrint("Packet received from :"+dp.getPort());
+					break; //if we got it, leave this loop
 				} catch (SocketTimeoutException e){
+					if(++numberOfRetransmit==maxTimeouts){
+						out.highPriorityPrint("Timed out too many times");
+						return false;
+					}
 					out.highPriorityPrint("Timed out, retransmitting");
-					socket.send(retransmit); //keep trying to send the datagram
-					out.lowPriorityPrint("Sending packet to :" );
-					out.lowPriorityPrint(retransmit);
-					out.lowPriorityPrint("Packet type: DATA\n Block number " + number+"\n Number of bytes: "+( retransmit.getLength()-4));
-		    
-					
-					//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
-					numberOfRetransmit+=1;
-					if(numberOfRetransmit==MAXNUMBERTIMEOUT)break;
+					socket.send(data.asDatagramPacket(address, port)); //keep trying to send the datagram
+					out.lowPriorityPrint("Sending packet to :"+port);
+					out.lowPriorityPrint("Packet type: DATA\n Block number " + data.getNumber()+"\n Number of bytes: "+(data.getBytes().length));
 				}
-			}
-			if(numberOfRetransmit==MAXNUMBERTIMEOUT){
-				break;//break out of everything 
-			}
-			else{
-				numberOfRetransmit=0;
 			}
 			
 			//if it's not from the right sender just discard the message for IT3
-			if(receiveWith.getAddress()!=address || receiveWith.getPort()!=port){
+			if(dp.getAddress()!=address || dp.getPort()!=port){
 				out.highPriorityPrint("this packet comes from another sender -> discarded");
-				break;
-			}
-			
-			Packet p = pfac.getPacket(receiveWith.getData(),receiveWith.getLength());
-			
-			if(p.getType().equals(PacketType.ACK)){
-				AcknowledgementPacket ap = (AcknowledgementPacket)p;
-				if (out.getQuiet())	out.highPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+receiveWith.getPort());
-				out.lowPriorityPrint(ap);
-				
-				
-				
-				if(ap.getNumber() < number){ //if it's less than we're working with right now, it's a duplicate ack
-					//SORCERER'S APPRENTICE BUG - DO NOTHING
-					//we loop around and get a packet again.
-				} else if(ap.getNumber() > number){
-					throw new RuntimeException("This acknowledgement is ahead of schedule");
-					//TODO not sure exactly what we're supposed to do here, but freaking out seems like as good a choice as any
-				} else { //it's not > and not <, it must be =. We successfully got a valid ack packet
-					return true;
-				}
-				
 			}else{
-				if(p.getType().equals(PacketType.ERR)){
-					ErrorPacket er = (ErrorPacket)p;
-					if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-						err.handleRemoteAccessViolation(socket, address, port,er);
-					}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-						err.handleRemoteAllocationExceeded(socket, address, port,er);
-					}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-						err.handleRemoteFileNotFound(socket, address, port,er);//error Here need handleRemoteFileNotfound
-					}else{
-						throw new RuntimeException("The packet receved is some unimplemented error type");
+				Packet p = pfac.getPacket(dp.getData(), dp.getLength());
+				
+				if(p.getType().equals(PacketType.ACK)){
+					AcknowledgementPacket ap = (AcknowledgementPacket)p;
+					if (out.getQuiet())	{
+						out.highPriorityPrint("Receiving ACK"+ap.getNumber()+" from port "+dp.getPort());
 					}
+					out.lowPriorityPrint(ap);
+					
+					if(ap.acknowledges(data.getNumber())){
+						return true;
+					}
+					
 				}else{
-					throw new RuntimeException("The packet received is of the wrong type");
+					if(p.getType().equals(PacketType.ERR)){
+						ErrorPacket er = (ErrorPacket)p;
+						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
+							err.handleRemoteAccessViolation(socket, address, port,er);
+						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
+							err.handleRemoteAllocationExceeded(socket, address, port,er);
+						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
+							err.handleRemoteFileNotFound(socket, address, port,er);//error Here need handleRemoteFileNotfound
+						}else{
+							throw new RuntimeException("The packet receved is some unimplemented error type");
+						}
+					}else{
+						throw new RuntimeException("The packet received is of the wrong type");
+					}
+					break; //break out of everything 
 				}
-				break; //break out of everything 
 			}
 		}
 		return false; //something went wrong
@@ -140,9 +130,7 @@ public class Sender implements Runnable {
 		try{
 			int number = 1;
 			byte[] fileBuffer = new byte[512];
-			byte[] buffer = new byte[Packet.getBufferSize()];
 			DataPacket dp;
-			DatagramPacket ack = new DatagramPacket(buffer, buffer.length);
 			int readSize = -1;
 			while(!closed){
 				try{
@@ -165,9 +153,12 @@ public class Sender implements Runnable {
 				out.lowPriorityPrint(datagram);
 				out.lowPriorityPrint(dp);
 				
-				if (!getValidAckPacket(ack, datagram, number)) break; //if something goes wrong - at the moment only an error packet causes this to return false
+				if (!getValidAckPacket(dp)) {
+					//an error packet arrived, or it took too long
+					break;
+				}
 
-				number = (number+1) & 0xffff;
+				number++;
 				
 				if(readSize < 512){
 					break;

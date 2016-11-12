@@ -2,7 +2,6 @@ package tftp;
 
 import packets.Packet;
 
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
 import packets.PacketType;

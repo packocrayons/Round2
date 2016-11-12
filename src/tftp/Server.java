@@ -25,8 +25,12 @@ import packets.WriteRequestPacket;
  *
  */
 public class Server implements Runnable{
-
 	public static final int SERVER_PORT = 69;
+	
+	public static final int SENDER_TIMEOUT = 2000;//times out to retransmit
+	public static final int SENDER_TIMEOUT_MAX = 5;//if the sender retransmits this many times in a row, it closes
+	public static final int RECEIVER_TIMEOUT = 20000;//If the receiver times out once, it closes 
+	
 	private final DatagramSocket serverSocket;
 	private final PacketFactory pFac= new PacketFactory();
 	private final FileFactory fFac;
@@ -59,10 +63,9 @@ public class Server implements Runnable{
 	public void run() {
 		try{
 			while(true){
-				byte[] requestBuffer = new byte[Math.max(ReadRequestPacket.getBufferSize(), WriteRequestPacket.getBufferSize())];
+				byte[] requestBuffer = new byte[Packet.getBufferSize()];
 				
 				DatagramPacket requestDatagram = new DatagramPacket(requestBuffer, requestBuffer.length);
-				
 				//add timeout here as well ? 
 				//no, this should not time out.
 				//when it is time to shut down the server, we close the socket
@@ -88,14 +91,19 @@ public class Server implements Runnable{
 					out.highPriorityPrint("Reading requested file");
 					
 					DatagramSocket sendingSocketRRQ = new DatagramSocket();
-					
+					sendingSocketRRQ.setSoTimeout(SENDER_TIMEOUT);
+					InputStream input = null;
 					try{
-						InputStream input = fFac.readFile(r.getFilePath());
-						new Thread(new Sender(err, out, input, sendingSocketRRQ, true, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath())).start();
+						input = fFac.readFile(r.getFilePath());
 					}catch(FileNotFoundException e){
 						err.handleLocalFileNotFound(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}catch(IllegalAccessException e){
 						err.handleLocalAccessViolation(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
+					}
+					if(input != null){
+						new Thread(new Sender(err, out, input, sendingSocketRRQ, true, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath(), SENDER_TIMEOUT_MAX)).start();
+					}else{
+						sendingSocketRRQ.close();
 					}
 					
 				}else if(p.getType().equals(PacketType.WRQ)){
@@ -105,14 +113,14 @@ public class Server implements Runnable{
 						out.highPriorityPrint("Server receiving WRQ from client");
 					}
 					DatagramSocket sendingSocketWRQ = new DatagramSocket();
+					sendingSocketWRQ.setSoTimeout(SENDER_TIMEOUT);
 					
 					try{
-					
 						OutputStream output = fFac.writeFile(r1.getFilePath());
 						AcknowledgementPacket ap = new AcknowledgementPacket(0);
 						byte[] ackPayload = ap.getBytes();
 						DatagramPacket ackPack=new DatagramPacket(ackPayload, ackPayload.length, requestDatagram.getAddress(), requestDatagram.getPort());
-						//No need to timeout here . If the ack is lost or delayed the sender will send the request again ? 
+						//no re-sending ack0, if this does not get to the client, we will time out and they will send a new request.
 						sendingSocketWRQ.send(ackPack);
 						if(out.getQuiet()){
 							out.highPriorityPrint("Server sending ack0 to client");
