@@ -85,7 +85,7 @@ public class Receiver implements Runnable {
 
 				
 				//if it's not from the right sender it is bad
-				if(datagramIn.getAddress()!=address || datagramIn.getPort()!=port){
+				if(!datagramIn.getAddress().equals(address) || datagramIn.getPort()!=port){
 					out.highPriorityPrint("this packet comes from another sender -> discarded");
 					break;
 				}
