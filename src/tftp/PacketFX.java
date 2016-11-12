@@ -4,7 +4,6 @@ import packets.AcknowledgementPacket;
 import packets.DataPacket;
 import packets.Packet;
 
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
 import packets.PacketType;

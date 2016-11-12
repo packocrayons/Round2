@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Objects;
 
@@ -24,13 +23,8 @@ import packets.PacketType;
  * @author Team 17
  */
 public class Receiver implements Runnable {
-
 	private final ErrorHandler err;
 	private final OutputHandler out;
-	
-	private static final int RECEIVINGPORTTIMEOUT = 4000; //larger then the sending port 
-	private static final int MAXNUMBERTIMEOUT = 4;
-	
 	private final OutputStream file;
 	private final String fileName;
 	private final DatagramSocket socket;
@@ -40,19 +34,21 @@ public class Receiver implements Runnable {
 	private InetAddress address;
     private boolean closed = false;
 	private int port;
-	private int numberOfTimeout=0;
 	
+	/**
+	 * @param err The error handler to use
+	 * @param out Where to send the output to
+	 * @param file The OutputStream to write the incomming file to
+	 * @param socket The socket to use, with a preconfigured timeout
+	 * @param closeItWhenDone Weather or not to close the socket when we are done
+	 * @param fname The name of the file being transfered, this is to give the output some more context
+	 */
 	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone,String fname){
 		this.err = err;
 		this.out = out;
 		this.file = file;
 		this.fileName=fname;
 		this.socket = socket;
-		try {
-			this.socket.setSoTimeout(RECEIVINGPORTTIMEOUT);
-		} catch (SocketException e) {
-			e.printStackTrace(); //unlikely to happen, if this throws an error we have bigger problems
-		}
 		this.closeItWhenDone = closeItWhenDone;
 	}
 	
@@ -69,33 +65,18 @@ public class Receiver implements Runnable {
 			
 			while(true){
 				
-				//some time out code goes around this statement
-				while(true){
-					try{
-						socket.receive(datagramIn);
-						
-						out.lowPriorityPrint("Packet received from :" );
-						out.lowPriorityPrint(datagramIn);
-						
-						break; //if we got it, leave the loop
-					} catch (SocketTimeoutException e){
-						numberOfTimeout+=1;
-						out.highPriorityPrint("Timed out ("+numberOfTimeout+") no retransmit from the receiver");
-						
-						if(numberOfTimeout==MAXNUMBERTIMEOUT)break;
-						//need to increment a counter to allow the sender to shut down after X retransmit = error packet from receiver lost
-					}
-				}
-				if(numberOfTimeout==MAXNUMBERTIMEOUT){
-					close();
+				//Get the data, catch the timeout
+				try{
+					socket.receive(datagramIn);
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(datagramIn);
+				} catch (SocketTimeoutException e){
+
+					out.highPriorityPrint("Receiver timed out");
 					break;
-				}
-				else{
-					numberOfTimeout=0;
 				}
 				
 				if(!senderFound){
-					
 					address = datagramIn.getAddress();
 					port = datagramIn.getPort();
 					out.highPriorityPrint("Recording sender address"+ address +" and sender port :"+port);
@@ -103,7 +84,7 @@ public class Receiver implements Runnable {
 				}
 
 				
-				//if it's not from the right sender just discard the message for IT3
+				//if it's not from the right sender it is bad
 				if(datagramIn.getAddress()!=address || datagramIn.getPort()!=port){
 					out.highPriorityPrint("this packet comes from another sender -> discarded");
 					break;
