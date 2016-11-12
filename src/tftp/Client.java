@@ -33,6 +33,8 @@ public class Client {
 	public static final int SENDER_TIMEOUT_MAX = 5;//if the sender retransmits this many times in a row, it closes
 	public static final int RECEIVER_TIMEOUT = 20000;//If the receiver times out once, it closes 
 	
+	public static final int MAX_REQUEST_RETRIES = 5;
+	
 	private final DatagramSocket socket;
 	private final FileFactory fFac;
 	private final PacketFactory pfac = new PacketFactory();
@@ -62,20 +64,31 @@ public class Client {
 	
 	public void readFile(String filePath, InetAddress address, int port){
 			try {
-				OutputStream output = fFac.writeFile(filePath);
-				ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
-				DatagramPacket request = new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
-				
-				socket.setSoTimeout(RECEIVER_TIMEOUT);
-				socket.send(request);
-				out.highPriorityPrint("Client sending RRQ to Server");
-				
-				//print info of packet sent
-				out.lowPriorityPrint("Sending packet to :" );
-				out.lowPriorityPrint(request);
-				out.lowPriorityPrint(rq);
-				
-				new Receiver(err, out, output, socket, false,filePath).run();
+				int tries = 0;
+				while(true){
+					OutputStream output = fFac.writeFile(filePath);
+					ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
+					DatagramPacket request = new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
+					
+					socket.setSoTimeout(RECEIVER_TIMEOUT);
+					socket.send(request);
+					out.highPriorityPrint("Client sending RRQ to Server");
+					
+					//print info of packet sent
+					out.lowPriorityPrint("Sending packet to :" );
+					out.lowPriorityPrint(request);
+					out.lowPriorityPrint(rq);
+					
+					Receiver runner = new Receiver(err, out, output, socket, false,filePath);
+					runner.run();
+					if(!runner.retryRequest){
+						break;
+					}else if(tries++ < MAX_REQUEST_RETRIES){
+						out.highPriorityPrint("The read request timmed out, retrying");
+					}else{
+						out.highPriorityPrint("None of the read requests have worked.\nGiving up");
+					}
+				}
 			} catch (IllegalAccessException  e) {
 				err.handleLocalAccessViolation(null, null, 0,filePath);
 			}catch (Throwable t) {
@@ -91,23 +104,30 @@ public class Client {
 			DatagramPacket ack0 = new DatagramPacket(new byte[Packet.getBufferSize()], AcknowledgementPacket.getBufferSize());
 			socket.setSoTimeout(SENDER_TIMEOUT);
 			
-			try{
-				socket.send(request);
-				//print info of packet sent
-				if(out.getQuiet()){
-					out.highPriorityPrint("Client sending WRQ to Server");
+			int tries = 0;
+			while(true){
+				try{
+					socket.send(request);
+					//print info of packet sent
+					if(out.getQuiet()){
+						out.highPriorityPrint("Client sending WRQ to Server");
+					}
+					out.lowPriorityPrint("Sending packet to :" );
+					out.lowPriorityPrint(request);
+					out.lowPriorityPrint(rq);
+					
+					socket.receive(ack0);
+					//print some info of packet received
+					out.lowPriorityPrint("Packet received from :" );
+					out.lowPriorityPrint(ack0);
+					break;
+				} catch (SocketTimeoutException e){
+					if(tries++ < MAX_REQUEST_RETRIES){
+						out.highPriorityPrint("The write request timmed out, retrying");
+					}else{
+						out.highPriorityPrint("None of the write requests have worked.\nGiving up");
+					}
 				}
-				out.lowPriorityPrint("Sending packet to :" );
-				out.lowPriorityPrint(request);
-				out.lowPriorityPrint(rq);
-				
-				socket.receive(ack0);
-				//print some info of packet received
-				out.lowPriorityPrint("Packet received from :" );
-				out.lowPriorityPrint(ack0);
-			} catch (SocketTimeoutException e){
-				//TODO print something good
-				return;
 			}
 			
 			Packet p = pfac.getPacket(ack0.getData(), ack0.getLength());

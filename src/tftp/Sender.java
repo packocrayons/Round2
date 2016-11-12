@@ -22,7 +22,7 @@ import packets.PacketType;
  * @author Team 17
  */
 public class Sender implements Runnable {
-	 
+	
 	private final int maxTimeouts;
 
 	private final ErrorHandler err;
@@ -35,9 +35,10 @@ public class Sender implements Runnable {
 	private final InetAddress address;
 	private final int port;
 	private final PacketFactory pfac = new PacketFactory();
-	
-	private boolean noLoopAround = true;	
+		
 	private boolean closed = false;
+	
+	public boolean retryRequest = true;
 	
 	/**
 	 * 
@@ -133,9 +134,7 @@ public class Sender implements Runnable {
 			byte[] fileBuffer = new byte[512];
 			DataPacket dp;
 			int readSize = -1;
-			int counter = 1;
 			while(!closed){
-				if (counter > 0xffff) noLoopAround = false; //once we pass this value - we've looped around
 				try{
 					readSize = file.read(fileBuffer);
 				}catch(IOException e){
@@ -160,11 +159,10 @@ public class Sender implements Runnable {
 					//an error packet arrived, or it took too long
 					break;
 				}
-				
+				retryRequest = false;
 				if(readSize < 512){
 					break;
 				}
-				counter++; //increment the counter
 			
 			}
 			close();

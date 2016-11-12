@@ -95,6 +95,8 @@ public class Server implements Runnable{
 					InputStream input = null;
 					try{
 						input = fFac.readFile(r.getFilePath());
+						
+						
 					}catch(FileNotFoundException e){
 						err.handleLocalFileNotFound(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}catch(IllegalAccessException e){

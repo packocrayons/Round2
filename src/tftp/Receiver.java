@@ -35,6 +35,8 @@ public class Receiver implements Runnable {
     private boolean closed = false;
 	private int port;
 	
+	public boolean retryRequest = true;
+	
 	/**
 	 * @param err The error handler to use
 	 * @param out Where to send the output to
@@ -81,6 +83,7 @@ public class Receiver implements Runnable {
 					port = datagramIn.getPort();
 					out.highPriorityPrint("Recording sender address"+ address +" and sender port :"+port);
 					senderFound = true;
+					retryRequest = false;
 				}
 
 				
