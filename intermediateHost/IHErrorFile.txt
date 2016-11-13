@@ -1,3 +1,19 @@
+#drop second acknowledgement packet
 drop ack 2
+#drop the read request, number is a filler (see language description)
+drop writerequest 0
+#delay data 4, send it when acknowledgement 5 is seen
 delay data 4 cond ack 5
-#this is a comment
+#delay data packet 40 for 20 milliseconds
+delay data 40 20
+#drop the 129th acknowledgement packet
+drop ack 129
+#duplicate 9th data packet twice, first send is immediate, second is when acknowledgement 12 is seen
+duplicate data 9 2 cond ack 12
+#duplicate 5th acknowledgement packet twice, second is 10 milliseconds after first
+duplicate ack 5 2 10
+#the following sequence sends data 4 as data (2^16)+4. This will break files, however is very difficult to protect against and is not required for this assignment
+#duplicate data 4 2 cond data 4
+#drop data 4
+#drop data 4
+#both drops are required because the first one is disabled after the first packet passes

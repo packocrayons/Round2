@@ -446,12 +446,12 @@ public class IntermediateHost{
 							s = token.nextToken();
 							if (s.equalsIgnoreCase("cond")) break; //there's a condition
 							effectArgs[i] = new Integer(s.replaceAll("", ""));
+							s = null;
 						}
 						
 						if (s != null){ //if it's supposed to be a condition
 							s = token.nextToken();
-							if (token.hasMoreTokens()){ 
-								System.out.println("more tokens"); //DEBUG
+							if (token.hasMoreTokens()){
 								String x = token.nextToken();
 								System.out.println(Integer.parseInt(x));
 								effectArgs[i] = parseFXCondition(s, Integer.parseInt(x));
