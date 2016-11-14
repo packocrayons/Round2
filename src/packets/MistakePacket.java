@@ -8,11 +8,11 @@ import java.util.Arrays;
   * @author Team 17
  * An I don't care packet is a packet that only exists when packet creation (in the packet factory) failed.
  */
-public class IDontCarePacket extends Packet {
-	private final PacketType type = PacketType.IDC;
+public class MistakePacket extends Packet {
+	private final PacketType type = PacketType.MISTAKE;
 	private final byte[] bytes;
 	
-	protected IDontCarePacket(byte[] data, int length){
+	protected MistakePacket(byte[] data, int length){
 		this.bytes = Arrays.copyOf(data, length);
 	}
 	

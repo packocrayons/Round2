@@ -24,12 +24,12 @@ public class AcknowledgementPacket extends Packet {
 	
 	protected AcknowledgementPacket(byte[] data, int length){
 		if(length != 4){
-			throw new IllegalArgumentException("This byte array is not 4 bytes long");
+			throw new IllegalArgumentException("Wrong length for ACK Packet");
 		}
 		
 		this.bytes = Arrays.copyOf(data, 4);
 		if(data[0] != (byte)0 || data[1] != this.getType().getOpcode()){
-			throw new IllegalArgumentException("The header on this packet is not formed correctly, it does not represent an ACK");
+			throw new IllegalArgumentException("Wrong header for ACK packet opcode received "+data[0]+data[1]);
 		}
 		this.number = (Byte.toUnsignedInt(data[2]) << 8)+(Byte.toUnsignedInt(data[3]));
 	}

@@ -43,11 +43,11 @@ public class ErrorPacket extends Packet {
 		this.bytes = data;
 		
 		if(length < 5){
-			throw new IllegalArgumentException("This byte array is not 5 bytes long");
+			throw new IllegalArgumentException("ERROR Packet too short");
 		}
 		
 		if(data[0] != (byte)0 || data[1] != this.getType().getOpcode()){
-			throw new IllegalArgumentException("The header on this packet is not formed correctly, it does not represent an ACK");
+			throw new IllegalArgumentException("Wrong header for ERROR packet opcode received "+data[0]+data[1]);
 		}
 		this.err = ErrorType.fromCode(data[3]);
 		
@@ -58,7 +58,7 @@ public class ErrorPacket extends Packet {
 			int messageEnd = messageStart;
 			while(data[++messageEnd] != (byte)0){}
 			if(messageEnd != data.length-1){
-				throw new RuntimeException("This data contains too many 0s");
+				throw new RuntimeException("This error message contains too many 0s");
 			}
 			this.message = new String(Arrays.copyOfRange(data, messageStart, messageEnd));
 		}

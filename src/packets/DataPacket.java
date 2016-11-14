@@ -20,7 +20,7 @@ public class DataPacket extends Packet {
 	
 	public DataPacket(int number, byte[] data){
 		if(data.length>512){
-			throw new IllegalArgumentException("This data block is too big");
+			throw new IllegalArgumentException("DATA Packet too long");
 		}
 		this.filePart = data.clone();
 		this.isLast = data.length<512;
@@ -38,12 +38,12 @@ public class DataPacket extends Packet {
 		data = Arrays.copyOf(data, length);
 		this.bytes = data;
 		
-		if(length < 4){
-			throw new IllegalArgumentException("This byte array is not 4 bytes long");
+		if(length < 5){
+			throw new IllegalArgumentException("DATA Packet too short");
 		}
 		
 		if(data[0] != (byte)0 || data[1] != this.getType().getOpcode()){
-			throw new IllegalArgumentException("The header on this packet is not formed correctly, it does not represent an ACK");
+			throw new IllegalArgumentException("Wrong header for DATA packet opcode received "+data[0]+data[1]);
 		}
 		this.number = (Byte.toUnsignedInt(data[2]) << 8)+(Byte.toUnsignedInt(data[3]));
 		this.filePart = Arrays.copyOfRange(data, 4, data.length);
