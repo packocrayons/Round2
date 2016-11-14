@@ -30,8 +30,12 @@ public interface ErrorHandler {
 	public abstract void handleRemoteAccessViolation(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep );
 	public abstract void handleLocalAllocationExceeded(DatagramSocket socket, InetAddress address, int port);
 	public abstract void handleRemoteAllocationExceeded(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep );
-	public abstract void handleLocalIllegalTftpOperation(DatagramSocket socket, InetAddress address, int port );
-	public abstract void handleRemoteIllegalTftpOperation(DatagramSocket socket, InetAddress address, int port );
+	public abstract void handleLocalIllegalTftpOperation(DatagramSocket socket, InetAddress address, int port,String message);
+	public abstract void handleRemoteIllegalTftpOperation(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep  );
+	public abstract void handleLocalUnknownTransferId(DatagramSocket socket, InetAddress address, int port );
+	public abstract void handleRemoteUnknownTransferId(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep );
+	public abstract void handleLocalFileAlreadyExists(DatagramSocket socket, InetAddress address, int port );
+	public abstract void handleRemoteFileAlreadyExists(DatagramSocket socket, InetAddress address, int port,ErrorPacket ep  );
 	
 }
 

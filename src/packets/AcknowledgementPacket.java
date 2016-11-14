@@ -41,6 +41,9 @@ public class AcknowledgementPacket extends Packet {
 	public boolean acknowledges(int dataBlockNumber){
 		return (dataBlockNumber & 0xffff) == (number & 0xffff);
 	}
+	public boolean inferiorTo(int dataBlockNumber){
+		return (dataBlockNumber & 0xffff) < (number & 0xffff);
+	}
 	
 	//@Override
 	public byte[] getBytes() {

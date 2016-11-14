@@ -102,7 +102,14 @@ public class Sender implements Runnable {
 					out.lowPriorityPrint(ap);
 					
 					if(ap.acknowledges(data.getNumber())){
+						out.lowPriorityPrint("ACK packet received is the expected one");
 						return true;
+					}
+					else if(ap.inferiorTo(data.getNumber())){
+						out.highPriorityPrint("Duplicate ACK Packet, discarded");
+					}
+					else{
+						//add error 4 for # over schedule
 					}
 					
 				}else{

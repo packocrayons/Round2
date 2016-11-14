@@ -11,11 +11,16 @@ import java.util.Arrays;
 public class MistakePacket extends Packet {
 	private final PacketType type = PacketType.MISTAKE;
 	private final byte[] bytes;
+	private final String message;
 	
-	protected MistakePacket(byte[] data, int length){
+	protected MistakePacket(byte[] data, int length,String message){
 		this.bytes = Arrays.copyOf(data, length);
+		this.message=message;
 	}
 	
+	public String getMessage(){
+		return message;
+	}
 	@Override
 	public byte[] getBytes() {
 		return bytes.clone();

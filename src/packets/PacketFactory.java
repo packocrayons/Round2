@@ -34,7 +34,7 @@ public class PacketFactory {
 				throw new RuntimeException("Invalid opcode");
 			}
 		}catch(RuntimeException e){
-			return new MistakePacket(data, length);
+			return new MistakePacket(data, length,e.getMessage());
 		}
 	}
 
