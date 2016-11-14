@@ -1,8 +1,5 @@
-package tftp;
+package errorSim;
 
-import packets.AcknowledgementPacket;
-import packets.DataPacket;
-import packets.Packet;
 import packets.PacketType;
 
 

@@ -31,10 +31,10 @@ public class PacketFactory {
 			}else if(data[1] == PacketType.DATA.getOpcode()){
 				return new DataPacket(data, length);
 			}else{
-				return new IDontCarePacket(data, length);
+				return new MistakePacket(data, length);
 			}
 		}catch(IllegalArgumentException e){
-			return new IDontCarePacket(data, length);
+			return new MistakePacket(data, length);
 		}
 	}
 

@@ -1,7 +1,5 @@
-package tftp;
+package errorSim;
 
-import packets.AcknowledgementPacket;
-import packets.DataPacket;
 import packets.Packet;
 
 import java.net.DatagramSocket;
@@ -9,6 +7,7 @@ import java.net.DatagramSocket;
 import packets.PacketType;
 
 import tftp.EffectType;
+import tftp.SendReceiveInterface;
 
 //* @author Team 17
 public class PacketFX {

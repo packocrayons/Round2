@@ -1,5 +1,5 @@
 
-package tftp;
+package errorSim;
 
 
 //import java.io.BufferedReader;
@@ -23,6 +23,9 @@ import packets.DataPacket;
 import packets.Packet;
 import packets.PacketFactory;
 import packets.PacketType;
+import tftp.EffectType;
+import tftp.FileFactory;
+import tftp.SendReceiveInterface;
 
 
 
@@ -402,7 +405,7 @@ public class IntermediateHost{
 		} else if (packet.equalsIgnoreCase("error")){
 			return new FXCondition(PacketType.ERR);
 		} else {
-			return new FXCondition(PacketType.IDC);
+			return new FXCondition(PacketType.MISTAKE);
 		}
 	}
 	
@@ -483,7 +486,7 @@ public class IntermediateHost{
 						} else if (pType.equalsIgnoreCase("error")){
 							packetType = PacketType.ERR;
 						} else {
-							packetType = PacketType.IDC;
+							packetType = PacketType.MISTAKE;
 						}
 						
 						System.out.println("New FX generated : packetNumber = " + packetNumber + " packetType = " + packetType.getHumanReadableName() + " effectArgs = " + Arrays.toString(effectArgs));
