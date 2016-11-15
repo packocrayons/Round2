@@ -131,7 +131,10 @@ public class Receiver implements Runnable {
 							err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the receiver");
 						}
 						close();
-						out.highPriorityPrint("Transmission failed");
+						if(!lastReceived)out.highPriorityPrint("Transmission failed");
+						else{
+							out.highPriorityPrint("An error packet has been received after last ack sent so transmission still complete, file received successfully.");
+						}
 						break;
 					}
 					DataPacket dp = (DataPacket)p;
