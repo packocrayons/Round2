@@ -14,6 +14,7 @@ import packets.Packet;
 import packets.AcknowledgementPacket;
 import packets.ErrorPacket;
 import packets.ErrorType;
+import packets.MistakePacket;
 import packets.PacketFactory;
 import packets.PacketType;
 import packets.ReadRequestPacket;
@@ -146,14 +147,38 @@ public class Client {
 				new Sender(err, out, input, socket, false, ack0.getAddress(), ack0.getPort(),filePath, SENDER_TIMEOUT_MAX).run();
 			}else if(p.getType().equals(PacketType.ERR)){
 				ErrorPacket ep = (ErrorPacket)p;
-				if(ep.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
+				if(ep.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){//error 1
+					err.handleRemoteFileNotFound(null, null, 0,ep);
+				}
+				else if(ep.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){//error 2
 					err.handleRemoteAccessViolation(null, null, 0,ep);
 				}
+				else if(ep.getErrorType().equals(ErrorType.ILLEGAL_TFTP_OPERATION)){//error 4
+					err.handleRemoteIllegalTftpOperation(null, null, 0,ep);
+				}
+				else if(ep.getErrorType().equals(ErrorType.UNKNOWN_TRANSFER_ID)){//error 5
+					err.handleRemoteUnknownTransferId(null, null, 0,ep);
+					//need to resend the request
+				}
+				else if(ep.getErrorType().equals(ErrorType.FILE_ALREADY_EXISTS)){//error 6
+					err.handleRemoteFileAlreadyExists(null,null, 0,ep);
+				}
+				else{
+					throw new RuntimeException("The packet received is some unimplemented error type");
+				}
+			}else if (p.getType().equals(PacketType.MISTAKE)){
+				//Mistake packet received create error packet 4 to send to the handler
+				MistakePacket mp=(MistakePacket)p;
+				err.handleLocalIllegalTftpOperation(socket, ack0.getAddress(), ack0.getPort(), mp.getMessage());
+			}else{
+				//if client receives any thing else than mistake or ack or error
+				err.handleLocalIllegalTftpOperation(socket, ack0.getAddress(), ack0.getPort(), "Packet type "+p.getType()+" not expected by the client");
 			}
+				
 		} catch (IllegalAccessException e) {
-			err.handleLocalAccessViolation(null, null, 0,filePath);
+			err.handleLocalAccessViolation(null, null, 0,filePath);//no error sent
 		} catch (FileNotFoundException e) {
-			err.handleLocalFileNotFound(null, null, 0,filePath);
+			err.handleLocalFileNotFound(null, null, 0,filePath);//no error sent
 		} catch (Throwable t) {
 			System.err.println (t.getMessage());
 		}

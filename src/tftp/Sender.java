@@ -12,6 +12,7 @@ import packets.AcknowledgementPacket;
 import packets.DataPacket;
 import packets.ErrorPacket;
 import packets.ErrorType;
+import packets.MistakePacket;
 import packets.Packet;
 import packets.PacketFactory;
 import packets.PacketType;
@@ -90,7 +91,8 @@ public class Sender implements Runnable {
 			
 			//if it's not from the right sender just discard the message for IT3
 			if(!dp.getAddress().equals(address) || dp.getPort()!=port){
-				out.highPriorityPrint("this packet comes from another sender -> discarded");
+				out.highPriorityPrint("this packet comes from another receiver -> discarded");
+				err.handleLocalUnknownTransferId(socket, dp.getAddress(), dp.getPort());
 			}else{
 				Packet p = pfac.getPacket(dp.getData(), dp.getLength());
 				
@@ -109,7 +111,9 @@ public class Sender implements Runnable {
 						out.highPriorityPrint("Duplicate ACK Packet, discarded");
 					}
 					else{
-						//add error 4 for # over schedule
+						err.handleLocalIllegalTftpOperation(socket,address, port , "ACK Packet #"+ap.getNumber()+" received by the sender is over schedule");
+						out.highPriorityPrint("ACK Packet #"+ap.getNumber()+" received is over schedule :Transmission failed");
+						break;
 					}
 					
 				}else{
@@ -120,12 +124,23 @@ public class Sender implements Runnable {
 						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
 							err.handleRemoteAllocationExceeded(socket, address, port,er);
 						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-							err.handleRemoteFileNotFound(socket, address, port,er);//error Here need handleRemoteFileNotfound
+							err.handleRemoteFileNotFound(socket, address, port,er);
+						}else if(er.getErrorType().equals(ErrorType.ILLEGAL_TFTP_OPERATION)){//error 4
+							err.handleRemoteIllegalTftpOperation(socket, address, port,er);
+						}else if(er.getErrorType().equals(ErrorType.UNKNOWN_TRANSFER_ID)){//error 5
+							err.handleRemoteUnknownTransferId(socket, address, port,er);
+						}else if(er.getErrorType().equals(ErrorType.FILE_ALREADY_EXISTS)){//error 6
+							err.handleRemoteFileAlreadyExists(socket, address, port,er);
 						}else{
-							throw new RuntimeException("The packet receved is some unimplemented error type");
+							throw new RuntimeException("The packet received is some unimplemented error type");
 						}
+					}else if (p.getType().equals(PacketType.MISTAKE)){
+						//Mistake packet received create error packet 4 to send to the handler
+						MistakePacket mp=(MistakePacket)p;
+						err.handleLocalIllegalTftpOperation(socket, address, port, mp.getMessage());
 					}else{
-						throw new RuntimeException("The packet received is of the wrong type");
+						//if sender receives any thing else than mistake or ack or error
+						err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the sender");
 					}
 					break; //break out of everything 
 				}

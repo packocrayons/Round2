@@ -13,6 +13,7 @@ import packets.AcknowledgementPacket;
 import packets.DataPacket;
 import packets.ErrorPacket;
 import packets.ErrorType;
+import packets.MistakePacket;
 import packets.Packet;
 import packets.PacketFactory;
 import packets.PacketType;
@@ -31,6 +32,8 @@ public class Receiver implements Runnable {
 	private final boolean closeItWhenDone;
 	private final PacketFactory pFac = new PacketFactory();
 	private boolean senderFound = false;
+
+	private boolean lastReceived=false;
 	private InetAddress address;
     private boolean closed = false;
 	private int port;
@@ -73,8 +76,9 @@ public class Receiver implements Runnable {
 					out.lowPriorityPrint("Packet received from :" );
 					out.lowPriorityPrint(datagramIn);
 				} catch (SocketTimeoutException e){
-
-					out.highPriorityPrint("Receiver timed out");
+					
+					if(lastReceived==true)out.highPriorityPrint("Transmission complete, file received successfully.");
+					else{out.highPriorityPrint("Receiver timed out , transfer failed");}
 					break;
 				}
 				
@@ -90,60 +94,74 @@ public class Receiver implements Runnable {
 				//if it's not from the right sender it is bad
 				if(!datagramIn.getAddress().equals(address) || datagramIn.getPort()!=port){
 					out.highPriorityPrint("this packet comes from another sender -> discarded");
-					break;
+					err.handleLocalUnknownTransferId(socket, datagramIn.getAddress(), datagramIn.getPort());
+					//don't proceed the packet return to wait for a packet
 				}
+				else{//if the sender is the expected one proceed the packet
 				
-				//check the input
-				Packet p = pFac.getPacket(datagramIn);
-				if(!p.getType().equals(PacketType.DATA)){
-					if(p.getType().equals(PacketType.ERR)){
-						ErrorPacket er = (ErrorPacket)p;
-						
-						if(out.getQuiet())out.highPriorityPrint("Error packet received of type "+er.getErrorType()+" with the following message"+er.getMessage());
-						
-						if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
-							err.handleRemoteAccessViolation(socket, address, port,er);
-						}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
-							err.handleRemoteAllocationExceeded(socket, address, port,er);
-						}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
-							err.handleRemoteFileNotFound(socket, address, port,er);
+					//check the input
+					Packet p = pFac.getPacket(datagramIn);
+					if(!p.getType().equals(PacketType.DATA)){
+						if(p.getType().equals(PacketType.ERR)){
+							ErrorPacket er = (ErrorPacket)p;
+							
+							if(out.getQuiet())out.highPriorityPrint("Error packet received of type "+er.getErrorType()+" with the following message"+er.getMessage());
+							
+							if(er.getErrorType().equals(ErrorType.ACCESS_VIOLATION)){
+								err.handleRemoteAccessViolation(socket, address, port,er);
+							}else if(er.getErrorType().equals(ErrorType.ALLOCATION_EXCEEDED)){
+								err.handleRemoteAllocationExceeded(socket, address, port,er);
+							}else if(er.getErrorType().equals(ErrorType.FILE_NOT_FOUND)){
+								err.handleRemoteFileNotFound(socket, address, port,er);
+							}else if(er.getErrorType().equals(ErrorType.ILLEGAL_TFTP_OPERATION)){//error 4
+								err.handleRemoteIllegalTftpOperation(socket, address, port,er);
+							}else if(er.getErrorType().equals(ErrorType.UNKNOWN_TRANSFER_ID)){//error 5
+								err.handleRemoteUnknownTransferId(socket, address, port,er);
+							}else if(er.getErrorType().equals(ErrorType.FILE_ALREADY_EXISTS)){//error 6
+								err.handleRemoteFileAlreadyExists(socket, address, port,er);
+							}else{
+								throw new RuntimeException("The packet received is some unimplemented error type");
+							}
+						}else if (p.getType().equals(PacketType.MISTAKE)){
+							//Mistake packet received create error packet 4 to send to the handler
+							MistakePacket mp=(MistakePacket)p;
+							err.handleLocalIllegalTftpOperation(socket, address, port, mp.getMessage());
 						}else{
-							throw new RuntimeException("The packet receved is some unimplemented error type");
+							//if receiver receives any thing else than mistake or data or error
+							err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the receiver");
 						}
-					}else{
-						throw new RuntimeException("The wrong type of packet was received, it was not Data or Error");
-					}
-					close();
-					out.highPriorityPrint("Transmission failed");
-					break;
-				}
-				DataPacket dp = (DataPacket)p;
-				if (out.getQuiet()){//quiet
-					out.highPriorityPrint("Data packet #"+dp.getNumber()+" received. It has "+dp.getFilePart().length+" bytes");
-				}
-				out.lowPriorityPrint(dp);
-				
-				System.out.print("\n");
-				if(dp.getNumber() == lastBlockNumber){
-					out.highPriorityPrint("It is a retransmition/duplicate packet");
-					//we received a retransition of the last block
-					ack(lastBlockNumber);
-				}else if(dp.comesAfter(lastBlockNumber)){
-					out.highPriorityPrint("It is the expected block (next block)");
-					//we received the next block
-					writeOut(dp.getFilePart());
-					lastBlockNumber = (lastBlockNumber+1) & 0xffff; 
-					ack(lastBlockNumber);
-					if(dp.isLast()){
-
-						out.highPriorityPrint("Transmission complete, file received successfully.");
+						close();
+						out.highPriorityPrint("Transmission failed");
 						break;
 					}
-				}else{
-					//we received some other block
-					continue;
+					DataPacket dp = (DataPacket)p;
+					if (out.getQuiet()){//quiet
+						out.highPriorityPrint("Data packet #"+dp.getNumber()+" received. It has "+dp.getFilePart().length+" bytes");
+					}
+					out.lowPriorityPrint(dp);
+					
+					System.out.print("\n");
+					if(dp.getNumber() <= lastBlockNumber){
+						out.highPriorityPrint("It is a retransmition/duplicate packet");
+						//we received a retransmition of a previous block
+						ack(dp.getNumber());
+					}else if(dp.comesAfter(lastBlockNumber)){
+						out.lowPriorityPrint("It is the expected block (next block)");
+						//we received the next block
+						writeOut(dp.getFilePart());
+						lastBlockNumber = (lastBlockNumber+1) & 0xffff; 
+						ack(lastBlockNumber);
+						if(dp.isLast()){
+							lastReceived=true;
+							continue;
+						}
+					}else{
+						//we received block # over schedule
+						err.handleLocalIllegalTftpOperation(socket,address, port , "DATA Packet #"+dp.getNumber()+" received by the receiver is over schedule");
+						out.highPriorityPrint("Transmission failed");
+						break;
+					}
 				}
-				
 			}
 			
 			//maybe leave the socket open for a short while to retransmit the last ack?

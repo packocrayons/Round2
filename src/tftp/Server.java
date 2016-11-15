@@ -10,6 +10,7 @@ import java.net.SocketException;
 import java.util.Scanner;
 
 import packets.AcknowledgementPacket;
+import packets.MistakePacket;
 import packets.Packet;
 import packets.PacketFactory;
 import packets.PacketType;
@@ -80,6 +81,7 @@ public class Server implements Runnable{
 				}
 				
 				Packet p = pFac.getPacket(requestDatagram.getData(), requestDatagram.getLength());
+				DatagramSocket sendReceiveSocket = new DatagramSocket();
 				//add printed info here.
 				if(p.getType().equals(PacketType.RRQ)){
 					ReadRequestPacket r = (ReadRequestPacket)p;
@@ -90,22 +92,22 @@ public class Server implements Runnable{
 					}
 					out.highPriorityPrint("Reading requested file");
 					
-					DatagramSocket sendingSocketRRQ = new DatagramSocket();
-					sendingSocketRRQ.setSoTimeout(SENDER_TIMEOUT);
+					
+					sendReceiveSocket .setSoTimeout(SENDER_TIMEOUT);
 					InputStream input = null;
 					try{
 						input = fFac.readFile(r.getFilePath());
 						
 						
 					}catch(FileNotFoundException e){
-						err.handleLocalFileNotFound(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
+						err.handleLocalFileNotFound(sendReceiveSocket , requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}catch(IllegalAccessException e){
-						err.handleLocalAccessViolation(sendingSocketRRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
+						err.handleLocalAccessViolation(sendReceiveSocket , requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath());
 					}
 					if(input != null){
-						new Thread(new Sender(err, out, input, sendingSocketRRQ, true, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath(), SENDER_TIMEOUT_MAX)).start();
+						new Thread(new Sender(err, out, input, sendReceiveSocket , true, requestDatagram.getAddress(), requestDatagram.getPort(),r.getFilePath(), SENDER_TIMEOUT_MAX)).start();
 					}else{
-						sendingSocketRRQ.close();
+						sendReceiveSocket .close();
 					}
 					
 				}else if(p.getType().equals(PacketType.WRQ)){
@@ -114,16 +116,17 @@ public class Server implements Runnable{
 					if(out.getQuiet()){//quiet
 						out.highPriorityPrint("Server receiving WRQ from client");
 					}
-					DatagramSocket sendingSocketWRQ = new DatagramSocket();
-					sendingSocketWRQ.setSoTimeout(SENDER_TIMEOUT);
+					
+					sendReceiveSocket .setSoTimeout(SENDER_TIMEOUT);
 					
 					try{
 						OutputStream output = fFac.writeFile(r1.getFilePath());
+						
 						AcknowledgementPacket ap = new AcknowledgementPacket(0);
 						byte[] ackPayload = ap.getBytes();
 						DatagramPacket ackPack=new DatagramPacket(ackPayload, ackPayload.length, requestDatagram.getAddress(), requestDatagram.getPort());
 						//no re-sending ack0, if this does not get to the client, we will time out and they will send a new request.
-						sendingSocketWRQ.send(ackPack);
+						sendReceiveSocket .send(ackPack);
 						if(out.getQuiet()){
 							out.highPriorityPrint("Server sending ack0 to client");
 						}
@@ -132,13 +135,27 @@ public class Server implements Runnable{
 						out.lowPriorityPrint(ackPack);
 						out.lowPriorityPrint(ap);
 						
-						new Thread(new Receiver(err, out, output, sendingSocketWRQ, true,r1.getFilePath())).start();//non-blocking
-
+						
+						if(output != null){
+							new Thread(new Receiver(err, out, output, sendReceiveSocket , true,r1.getFilePath())).start();//non-blocking
+						}else{
+							sendReceiveSocket .close();
+						}
+						
 					}catch(IllegalAccessException e){
-						err.handleLocalAccessViolation(sendingSocketWRQ, requestDatagram.getAddress(), requestDatagram.getPort(),r1.getFilePath());
+						err.handleLocalAccessViolation(sendReceiveSocket , requestDatagram.getAddress(), requestDatagram.getPort(),r1.getFilePath());
+						sendReceiveSocket .close();
 					}
+					
+				}else if (p.getType().equals(PacketType.MISTAKE)){
+					//Mistake packet received create error packet 4 to send to the handler
+					MistakePacket mp=(MistakePacket)p;
+					err.handleLocalIllegalTftpOperation(sendReceiveSocket , requestDatagram.getAddress(), requestDatagram.getPort(), mp.getMessage());
+					sendReceiveSocket .close();
 				}else{
-					throw new RuntimeException("This packet is not a valid read or write request");
+					//if server receives any thing else than mistake or rrq/wrq
+					err.handleLocalIllegalTftpOperation(sendReceiveSocket , requestDatagram.getAddress(), requestDatagram.getPort(), "Packet type "+p.getType()+" not expected by the client");
+					sendReceiveSocket .close();
 				}
 			}	
 		}catch(Throwable t){

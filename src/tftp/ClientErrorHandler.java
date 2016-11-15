@@ -84,6 +84,7 @@ public class ClientErrorHandler implements ErrorHandler {
 	public void handleLocalIllegalTftpOperation(DatagramSocket socket, InetAddress address, int port, String message) {
 		// TODO Auto-generated method stub
 		out.highPriorityPrint("The client received an invalid packet");
+		out.lowPriorityPrint(message);
 		if(socket != null && address != null && port != 0){
 			//things happened after the connection was established.
 			ErrorPacket e = new ErrorPacket(ErrorType.ILLEGAL_TFTP_OPERATION,message);
