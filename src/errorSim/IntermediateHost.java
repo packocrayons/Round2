@@ -23,7 +23,6 @@ import packets.DataPacket;
 import packets.Packet;
 import packets.PacketFactory;
 import packets.PacketType;
-import tftp.EffectType;
 import tftp.FileFactory;
 import tftp.SendReceiveInterface;
 
