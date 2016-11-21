@@ -16,6 +16,8 @@ The ErrorSimulator uses a context-free language to read it's actions towards pac
 	drop (packet) (packetNum) [noArgs]
 	delay (packet) (packetNum) [timeInMillis]
 	duplicate (packet) (packetNum) [numberOfDuplicates timeBetweenDuplicates]
+	opcode (packet) (packetNum) [newOpcodeFirstByte newOpcodeSecondByte]
+	mode (packet) (packetNum)
 	#lines that begin with '#' are comments and are ignored, there is no multi-line commenting, or beginning a comment mid-line
 Times can be replaced with conditions - conditions are met on specific packets, for example,
 	delay ack 4 cond data 7

@@ -1,12 +1,10 @@
 package errorSim;
 
-import packets.Packet;
+import packets.*;
 
 import java.net.DatagramSocket;
 
 import packets.PacketType;
-
-import tftp.EffectType;
 import tftp.SendReceiveInterface;
 
 //* @author Team 17
@@ -17,12 +15,18 @@ public class PacketFX {
 	private static final int PACKETDUPLICATEQUANTITYINDEX = 0;
 	private static final int PACKETDUPLICATETIMEBETWEENINDEX = 1;
 	
+	private static final int CORRUPTOPCODENEWCODE1INDEX = 0;
+	private static final int CORRUPTOPCODENEWCODE2INDEX = 1;
+	
+	private static final char OPCODECORRUPTIONCHAR = 'l';
+	
 	private int packetNumber; //which packet number to affect
 	private PacketType packetType; //which type of packet to affect
 	private EffectType effect; //REFACTOR this will probably be an ENUM later
 	private Object effectArgs[];
 	protected boolean hasCondition;
 	private boolean enabled = true;
+	private PacketFactory pf;
 
 	public PacketFX(int packetNumber, PacketType packetType, EffectType effect, Object[] effectArgs){
 		this.packetNumber = packetNumber;
@@ -30,6 +34,7 @@ public class PacketFX {
 		this.effect = effect;
 		this.effectArgs = effectArgs;
 		for (int i = 0; i < effectArgs.length; ++i) if (effectArgs[i] instanceof FXCondition) hasCondition = true;
+		pf = new PacketFactory();
 	}
 	
 	public void tryMeetCondition(PacketType p, int num){
@@ -46,11 +51,15 @@ public class PacketFX {
 			return; //this is here so that the effect can hang around to have the condition met
 		}
 		enabled = false; //we've passed the "enabled barrier", we're the only one that's allowed to use the effect.
-		switch(effect){ //REFACTOR fix this once effect is an
+		switch(effect){
+		
 		case DROP: //drop packet
+			
 			//do nothing, the packet disappears
 			break;
+			
 		case DELAY: //delay packet
+			
 			new Thread(new Runnable(){ //start a new thread to delay the packet, this is required because we have to do other things while we delay the packet
 				@Override
 				public void run(){
@@ -69,7 +78,9 @@ public class PacketFX {
 				}
 			}).start();
 			break;
+			
 		case DUPLICATE: //duplicate packet, start a new thread for this - see delay for explanation
+			
 			new Thread(new Runnable(){
 				@Override
 				public void run(){
@@ -90,9 +101,39 @@ public class PacketFX {
 			}
 			).start();
 			break;
+			
+		case OPCODE:
+			
+			byte[] datacontents = p.getBytes();
+			datacontents[0] = (byte)effectArgs[CORRUPTOPCODENEWCODE1INDEX];
+			datacontents[1] = (byte)effectArgs[CORRUPTOPCODENEWCODE2INDEX];
+			Packet newPacket = pf.getPacket(datacontents, datacontents.length); //this will probably return a mistake packet, that's fine because we can still send those
+			i.sendFromSocket(s, newPacket);
+			
+			break;
+			
+		case MODE: //this is only applicable to readRequest and writeRequest packets, otherwise we just send it on
+			if(p instanceof ReadRequestPacket || p instanceof WriteRequestPacket){
+				System.out.println("mode running on request");
+				byte[] bytes = p.getBytes();
+				int opcodeFinder;
+				for(opcodeFinder = 0; opcodeFinder < bytes.length; ++opcodeFinder){
+					if (bytes[opcodeFinder] == '0') break;
+				}
+				bytes[opcodeFinder + 1] = OPCODECORRUPTIONCHAR;
+				Packet np = pf.getPacket(bytes, bytes.length);
+				i.sendFromSocket(s, np);
+				break;
+			} else {
+				i.sendFromSocket(s, p);break;
+			}
+			
+			
 		case NOTHING:
+			
 			i.sendFromSocket(s, p); //don't do anything to the packet
 			break;
+			
 		default :
 			i.sendFromSocket(s, p); //something went wrong, forward the packet as usual
 		}
