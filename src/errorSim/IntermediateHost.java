@@ -470,6 +470,10 @@ public class IntermediateHost{
 							effectType = EffectType.DELAY;
 						}else if (type.equalsIgnoreCase("duplicate")){
 							effectType = EffectType.DUPLICATE;
+						} else if (type.equalsIgnoreCase("opcode")){
+							effectType = EffectType.OPCODE;
+						} else if (type.equalsIgnoreCase("mode")){
+							effectType = EffectType.MODE;
 						} else{
 							effectType = EffectType.NOTHING;
 						}

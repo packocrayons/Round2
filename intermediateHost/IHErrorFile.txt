@@ -1,7 +1,7 @@
 #drop second acknowledgement packet
 drop ack 2
 #drop the read request, number is a filler (see language description)
-drop writerequest 0
+mode writerequest 0
 #delay data 4, send it when acknowledgement 5 is seen
 delay data 4 cond ack 5
 #delay data packet 40 for 20 milliseconds

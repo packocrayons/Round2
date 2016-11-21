@@ -18,6 +18,8 @@ public class PacketFX {
 	private static final int CORRUPTOPCODENEWCODE1INDEX = 0;
 	private static final int CORRUPTOPCODENEWCODE2INDEX = 1;
 	
+	private static final char OPCODECORRUPTIONCHAR = 'l';
+	
 	private int packetNumber; //which packet number to affect
 	private PacketType packetType; //which type of packet to affect
 	private EffectType effect; //REFACTOR this will probably be an ENUM later
@@ -110,7 +112,22 @@ public class PacketFX {
 			
 			break;
 			
-//		case MODE: 
+		case MODE: //this is only applicable to readRequest and writeRequest packets, otherwise we just send it on
+			if(p instanceof ReadRequestPacket || p instanceof WriteRequestPacket){
+				System.out.println("mode running on request");
+				byte[] bytes = p.getBytes();
+				int opcodeFinder;
+				for(opcodeFinder = 0; opcodeFinder < bytes.length; ++opcodeFinder){
+					if (bytes[opcodeFinder] == '0') break;
+				}
+				bytes[opcodeFinder + 1] = OPCODECORRUPTIONCHAR;
+				Packet np = pf.getPacket(bytes, bytes.length);
+				i.sendFromSocket(s, np);
+				break;
+			} else {
+				i.sendFromSocket(s, p);break;
+			}
+			
 			
 		case NOTHING:
 			
