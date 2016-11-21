@@ -117,7 +117,7 @@ public class Server implements Runnable{
 						out.highPriorityPrint("Server receiving WRQ from client");
 					}
 					
-					sendReceiveSocket .setSoTimeout(SENDER_TIMEOUT);
+					sendReceiveSocket .setSoTimeout(RECEIVER_TIMEOUT);
 					
 					try{
 						OutputStream output = fFac.writeFile(r1.getFilePath());
