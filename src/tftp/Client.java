@@ -32,7 +32,7 @@ public class Client {
 
 	public static final int SENDER_TIMEOUT = 2000;//times out to retransmit
 	public static final int SENDER_TIMEOUT_MAX = 5;//if the sender retransmits this many times in a row, it closes
-	public static final int RECEIVER_TIMEOUT = 20000;//If the receiver times out once, it closes 
+	public static final int RECEIVER_TIMEOUT = 5000;//If the receiver times out once, it closes 
 	
 	public static final int MAX_REQUEST_RETRIES = 5;
 	
