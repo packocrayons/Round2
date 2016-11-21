@@ -1,5 +1,5 @@
 #drop second acknowledgement packet
-opcode data 2 0 7
+delay ack 2 3000
 #drop the read request, number is a filler (see language description)
 #mode writerequest 0
 #delay data 4, send it when acknowledgement 5 is seen

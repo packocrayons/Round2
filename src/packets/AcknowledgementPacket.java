@@ -42,7 +42,7 @@ public class AcknowledgementPacket extends Packet {
 		return (dataBlockNumber & 0xffff) == (number & 0xffff);
 	}
 	public boolean inferiorTo(int dataBlockNumber){
-		return (dataBlockNumber & 0xffff) < (number & 0xffff);
+		return (dataBlockNumber & 0xffff) > (number & 0xffff);
 	}
 	
 	//@Override
