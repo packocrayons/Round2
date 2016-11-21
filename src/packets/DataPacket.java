@@ -38,7 +38,7 @@ public class DataPacket extends Packet {
 		data = Arrays.copyOf(data, length);
 		this.bytes = data;
 		
-		if(length < 5){
+		if(length < 4){
 			throw new IllegalArgumentException("DATA Packet too short");
 		}
 		

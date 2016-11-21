@@ -28,9 +28,9 @@ import packets.WriteRequestPacket;
 public class Server implements Runnable{
 	public static final int SERVER_PORT = 69;
 	
-	public static final int SENDER_TIMEOUT = 2000;//times out to retransmit
+	public static final int SENDER_TIMEOUT = 2*1000;//times out to retransmit
 	public static final int SENDER_TIMEOUT_MAX = 5;//if the sender retransmits this many times in a row, it closes
-	public static final int RECEIVER_TIMEOUT = 20000;//If the receiver times out once, it closes 
+	public static final int RECEIVER_TIMEOUT = 10*1000;//If the receiver times out once, it closes 
 	
 	private final DatagramSocket serverSocket;
 	private final PacketFactory pFac= new PacketFactory();
@@ -117,7 +117,7 @@ public class Server implements Runnable{
 						out.highPriorityPrint("Server receiving WRQ from client");
 					}
 					
-					sendReceiveSocket .setSoTimeout(SENDER_TIMEOUT);
+					sendReceiveSocket .setSoTimeout(RECEIVER_TIMEOUT);
 					
 					try{
 						OutputStream output = fFac.writeFile(r1.getFilePath());

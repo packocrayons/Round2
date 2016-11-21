@@ -432,7 +432,7 @@ public class IntermediateHost{
 			System.out.println("An IHErrorFile.txt was found, parsing");
 			{ //leftover scoping bracket
 				while (IHErrorTokenizer.hasMoreTokens()){ //read each line - this is context free
-					line = IHErrorTokenizer.nextToken();
+					line = IHErrorTokenizer.nextToken().replaceAll("[\\s]+", " ").trim();
 					System.out.println("line read: " + line); //DEBUG
 					if (!(line.charAt(0) == IHERRORFILECOMMENTCHAR)){ //skip this line if it begins with a #
 						StringTokenizer token = new StringTokenizer(line, " "); //split the string by spaces
