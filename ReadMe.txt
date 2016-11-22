@@ -10,15 +10,23 @@ The Client provides a simple user interface that allows the user to input requir
 It does not terminate until the user indicates that no more files are to be transferred and it does not support concurrent file transfers.
 
 The Error Simulation (port 23) communicates with the client and the server using DatagramSocket objects.
-The ErrorSimulator uses a context-free language to read it's actions towards packets, the language is described as follows:
+The ErrorSimulator uses a context-free language to read its actions towards packets, the language is described as follows:
 	program packetType packetNumber [args]
 	Available 'programs' are :
 	drop (packet) (packetNum) [noArgs]
+		simply drop the packet, this packet vanishes
 	delay (packet) (packetNum) [timeInMillis]
-	duplicate (packet) (packetNum) [numberOfDuplicates timeBetweenDuplicates]
+		delay the packet for the specified time or until the condition. Other packets will be passed through while this packet is waiting
+	duplicate (packet) (packetNum) [numberOfPackets timeBetweenDuplicates]
+		every timeBetweenDuplicates (fist packet is immediate), send a packet and decrement numberOfPackets. Note if numberOfPackets=1 the packet passes unaffected
 	opcode (packet) (packetNum) [newOpcodeFirstByte newOpcodeSecondByte]
-	mode (packet) (packetNum)
+		change the opcode of the given packet to the new opcode (split over two arguments)
+	mode (packet) (packetNum) CURRENTLY NOT FUNCTIONAL
+		will add more when fixed
+	port (packet) (packetNum)
+		creates a new socket and sends this packet from that port. User cannot specify the port to guarantee that the JVM will find an available one. Note this also drops the packet from the original sender
 	#lines that begin with '#' are comments and are ignored, there is no multi-line commenting, or beginning a comment mid-line
+
 Times can be replaced with conditions - conditions are met on specific packets, for example,
 	delay ack 4 cond data 7
 will delay acknowledgement packet 4 until the intermediate host sees data packet 7.

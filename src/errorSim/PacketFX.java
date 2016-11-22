@@ -2,7 +2,10 @@ package errorSim;
 
 import packets.*;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 
 import packets.PacketType;
 import tftp.SendReceiveInterface;
@@ -105,29 +108,55 @@ public class PacketFX {
 		case OPCODE:
 			
 			byte[] datacontents = p.getBytes();
-			datacontents[0] = (byte)effectArgs[CORRUPTOPCODENEWCODE1INDEX];
-			datacontents[1] = (byte)effectArgs[CORRUPTOPCODENEWCODE2INDEX];
+			datacontents[0] = (byte)(((Integer)effectArgs[CORRUPTOPCODENEWCODE1INDEX]).intValue());
+			datacontents[1] = (byte)(((Integer)effectArgs[CORRUPTOPCODENEWCODE2INDEX]).intValue());
 			Packet newPacket = pf.getPacket(datacontents, datacontents.length); //this will probably return a mistake packet, that's fine because we can still send those
 			i.sendFromSocket(s, newPacket);
 			
 			break;
 			
 		case MODE: //this is only applicable to readRequest and writeRequest packets, otherwise we just send it on
+			
 			if(p instanceof ReadRequestPacket || p instanceof WriteRequestPacket){
-				System.out.println("mode running on request");
 				byte[] bytes = p.getBytes();
+				System.out.println("Old byte array: " + bytes);
 				int opcodeFinder;
 				for(opcodeFinder = 0; opcodeFinder < bytes.length; ++opcodeFinder){
 					if (bytes[opcodeFinder] == '0') break;
 				}
+				System.out.println("changing char at index " + opcodeFinder);
 				bytes[opcodeFinder + 1] = OPCODECORRUPTIONCHAR;
 				Packet np = pf.getPacket(bytes, bytes.length);
+				System.out.println("new byte array: " + bytes);
 				i.sendFromSocket(s, np);
 				break;
 			} else {
 				i.sendFromSocket(s, p);break;
 			}
 			
+		case PORT:
+			
+			new Thread(new Runnable(){
+			
+				public void run(){
+					DatagramSocket newSocket = null;
+					try {
+						newSocket = new DatagramSocket();
+					} catch (SocketException e) {
+						e.printStackTrace();
+					}
+					i.sendFromSocket(newSocket, p);
+					System.out.println("Packet sent from port " + newSocket.getLocalPort());
+					try {
+						newSocket.receive(new DatagramPacket(new byte[512], 512));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					System.out.println("packet received from server, killing temporary socket");
+					return;
+				}
+			}).start();
+			break;
 			
 		case NOTHING:
 			
