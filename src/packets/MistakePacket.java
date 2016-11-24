@@ -13,11 +13,6 @@ public class MistakePacket extends Packet {
 	private final byte[] bytes;
 	private final String message;
 	
-	public MistakePacket(){
-		bytes = new byte[0];
-		message = "";
-	}
-	
 	protected MistakePacket(byte[] data, int length,String message){
 		this.bytes = Arrays.copyOf(data, length);
 		this.message=message;

@@ -6,7 +6,7 @@ package packets;
  * @author Team 17
  */
 public enum PacketType {
-	GENERIC("Generic",(byte)-1),
+	GENERIC("Generic",(byte)0),
     MISTAKE("Mistake",(byte)0),
     RRQ("Read request",(byte)1),
     WRQ("Write request",(byte)2),

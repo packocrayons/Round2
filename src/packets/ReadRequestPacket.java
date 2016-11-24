@@ -18,20 +18,14 @@ public class ReadRequestPacket extends Packet{
 	public ReadRequestPacket(String filePath, FileType fileType){
 		this.filePath = filePath;
 		this.fileType = fileType;
-		
-		byte[] path = filePath.getBytes();
-		byte[] type = fileType.name().getBytes();
-		byte[] data = new byte[2+filePath.length()+1+fileType.name().length()+1];
-		
-		data[0] = (byte)0;
-		data[1] = this.getType().getOpcode();
-		System.arraycopy( path, 0, data, 2, path.length);
-		data[2+path.length] = (byte)0;
-		System.arraycopy( type, 0, data, 2+path.length+1, type.length );
-		data[2+path.length+1+type.length] = 0;
-		
-		this.bytes = data;
-		
+		this.bytes = new GenericPacket(
+				(byte)0,
+				(byte)type.getOpcode())
+				.cat(filePath)
+				.cat((byte)0)
+				.cat(fileType.name())
+				.cat((byte)0)
+				.getBytes();
 	}
 	
 	protected ReadRequestPacket(byte[] data, int length){

@@ -14,12 +14,11 @@ public class AcknowledgementPacket extends Packet {
 	
 	public AcknowledgementPacket(int number){
 		this.number = number & 0xffff;
-		byte[] temp = new byte[4];
-		temp[0] = (byte)0;
-		temp[1] = type.getOpcode();
-		temp[2] = (byte)(number/(1<<8));
-		temp[3] = (byte)(number%(1<<8));
-		this.bytes = temp;
+		this.bytes = new GenericPacket(
+				(byte)0, 
+				type.getOpcode(), 
+				(byte)(number/(1<<8)), 
+				(byte)(number/(1<<8))).getBytes();
 	}
 	
 	protected AcknowledgementPacket(byte[] data, int length){
@@ -28,8 +27,8 @@ public class AcknowledgementPacket extends Packet {
 		}
 		
 		this.bytes = Arrays.copyOf(data, 4);
-		if(data[0] != (byte)0 || data[1] != this.getType().getOpcode()){
-			throw new IllegalArgumentException("Wrong header for ACK packet opcode received "+data[0]+data[1]);
+		if(data[0] != (byte)0 || data[1] != (byte)1){
+			throw new IllegalArgumentException("Wrong header for ACK packet opcode received "+data[0]+""+data[1]);
 		}
 		this.number = (Byte.toUnsignedInt(data[2]) << 8)+(Byte.toUnsignedInt(data[3]));
 	}

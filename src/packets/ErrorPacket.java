@@ -1,9 +1,3 @@
-
-
-	
-	
-
-
 package packets;
 
 import java.util.Arrays;
@@ -16,33 +10,28 @@ public class ErrorPacket extends Packet {
 	private final ErrorType err;
 	
 	public ErrorPacket(ErrorType err){
-		this(err, "");
+		this(err, null);
 	}
 	
 	public ErrorPacket(ErrorType err, String message){
 		this.err = err;
 		this.message = (message != null)?(message):("");
-		byte[] temp = new byte[2+2+this.message.getBytes().length+1];
-		
-		temp[0] = (byte)0;
-		temp[1] = type.getOpcode();
-		temp[2] = (byte)0;
-		temp[3] = err.getOpcode();
-		
-		System.arraycopy(this.message.getBytes(), 0, temp, 4, this.message.getBytes().length);
-		
-		temp[temp.length-1] = (byte)0;
-		
-		this.bytes=temp;
-		
-		
+		//byte[] temp = new byte[2+2+this.message.getBytes().length+1];
+		this.bytes = new GenericPacket(
+				(byte)0,
+				type.getOpcode(),
+				(byte)0,
+				err.getOpcode())
+				.cat(message)
+				.cat((byte)0)
+				.getBytes();
 	}
-	
+		
 	protected ErrorPacket(byte[] data, int length){
 		data = Arrays.copyOf(data, length);
 		this.bytes = data;
 		
-		if(length < 5){
+		if(length < 4){
 			throw new IllegalArgumentException("ERROR Packet too short");
 		}
 		
