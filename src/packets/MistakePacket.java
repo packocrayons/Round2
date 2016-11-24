@@ -18,11 +18,6 @@ public class MistakePacket extends Packet {
 		message = "";
 	}
 	
-	private MistakePacket(byte[] data){
-		bytes = data.clone();
-		message = "";
-	}
-	
 	protected MistakePacket(byte[] data, int length,String message){
 		this.bytes = Arrays.copyOf(data, length);
 		this.message=message;
@@ -40,22 +35,6 @@ public class MistakePacket extends Packet {
 	public PacketType getType() {
 		return type;
 	}
-	
-	public MistakePacket cat(byte b){
-		return this.cat(new byte[]{b});
-	}
-	
-	public MistakePacket cat(String s){
-		return this.cat(s.getBytes());
-	}
-	
-	public MistakePacket cat(byte[] b){
-		byte[] newData = new byte[bytes.length+b.length];
-		System.arraycopy(bytes, 0, newData, 0, bytes.length);
-		System.arraycopy(b, 0, newData, bytes.length, b.length);
-		return new MistakePacket(newData);
-	}
-	
 	
 	//@Override
 	public static int getBufferSize() {
