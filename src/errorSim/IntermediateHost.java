@@ -447,7 +447,12 @@ public class IntermediateHost{
 						for (i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
 							if (s.equalsIgnoreCase("cond")) break; //there's a condition
-							effectArgs[i] = new Integer(s.replaceAll("", ""));
+							if (s.matches("^-?\\d+$")){
+								System.out.println("matches int");
+								effectArgs[i] = new Integer(s.replaceAll("", ""));
+							} else {
+								effectArgs[i] = s; //deal with this on the argument side
+							}
 							s = null;
 						}
 						
@@ -455,7 +460,7 @@ public class IntermediateHost{
 							s = token.nextToken();
 							if (token.hasMoreTokens()){
 								String x = token.nextToken();
-								System.out.println(Integer.parseInt(x));
+//								System.out.println(Integer.parseInt(x));
 								effectArgs[i] = parseFXCondition(s, Integer.parseInt(x));
 							} else { 
 								effectArgs[i] = parseFXCondition(s, 0); //assume that they got the language right, this condition doesn't have a number, so it doesn't matter
@@ -476,6 +481,8 @@ public class IntermediateHost{
 							effectType = EffectType.MODE;
 						} else if (type.equalsIgnoreCase("port")){
 							effectType = EffectType.PORT;
+						} else if (type.equalsIgnoreCase("size")){
+							effectType = EffectType.SIZE;
 						} else{
 							effectType = EffectType.NOTHING;
 						}
