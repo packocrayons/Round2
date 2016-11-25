@@ -21,10 +21,12 @@ The ErrorSimulator uses a context-free language to read its actions towards pack
 		every timeBetweenDuplicates (fist packet is immediate), send a packet and decrement numberOfPackets. Note if numberOfPackets=1 the packet passes unaffected
 	opcode (packet) (packetNum) [newOpcodeFirstByte newOpcodeSecondByte]
 		change the opcode of the given packet to the new opcode (split over two arguments)
-	mode (packet) (packetNum) CURRENTLY NOT FUNCTIONAL
-		will add more when fixed
+	mode (packet) (packetNum)
+		flips a character in the fileType (octet or ascii), currently doesn't allow configuring the new fileType
 	port (packet) (packetNum)
 		creates a new socket and sends this packet from that port. User cannot specify the port to guarantee that the JVM will find an available one. Note this also drops the packet from the original sender
+	size (packet) (packetNum) [sizeModifier] {'zeroes'}
+		lengthens or shrinks the byte array in the packet, extends if sizeModifier is positive, shrinks if negative. 'zeroes' is optionally added to extend - adds null to the end of the byte array, instead of random values	
 	#lines that begin with '#' are comments and are ignored, there is no multi-line commenting, or beginning a comment mid-line
 
 Times can be replaced with conditions - conditions are met on specific packets, for example,
