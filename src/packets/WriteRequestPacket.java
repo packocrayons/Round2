@@ -17,13 +17,13 @@ public class WriteRequestPacket extends Packet{
 	public WriteRequestPacket(String filePath, FileType fileType){
 		this.filePath = filePath;
 		this.fileType = fileType;
-		this.bytes = new GenericPacket(
-				(byte)0,
-				(byte)type.getOpcode())
+		this.bytes = new GenericPacket()
+				.cat(type.getOpcode()>>8)
+				.cat(type.getOpcode())
 				.cat(filePath)
-				.cat((byte)0)
+				.cat(0)
 				.cat(fileType.name())
-				.cat((byte)0)
+				.cat(0)
 				.getBytes();
 	}
 	

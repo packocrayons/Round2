@@ -24,11 +24,11 @@ public class DataPacket extends Packet {
 		this.filePart = data.clone();
 		this.isLast = data.length<512;
 		this.number = number & 0xffff;
-		this.bytes = new GenericPacket(
-				(byte)0,
-				(byte)type.getOpcode(), 
-				(byte)(number/(1<<8)),
-				(byte)(number%(1<<8)))
+		this.bytes = new GenericPacket()
+				.cat(type.getOpcode()>>8)
+				.cat(type.getOpcode()) 
+				.cat(number>>8)
+				.cat(number)
 				.cat(data).getBytes();
 	}
 	

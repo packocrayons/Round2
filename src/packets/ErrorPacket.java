@@ -17,13 +17,13 @@ public class ErrorPacket extends Packet {
 		this.err = err;
 		this.message = (message != null)?(message):("");
 		//byte[] temp = new byte[2+2+this.message.getBytes().length+1];
-		this.bytes = new GenericPacket(
-				(byte)0,
-				type.getOpcode(),
-				(byte)0,
-				err.getOpcode())
+		this.bytes = new GenericPacket()
+				.cat(type.getOpcode()>>8)
+				.cat(type.getOpcode())
+				.cat(err.getOpcode()>>8)
+				.cat(err.getOpcode())
 				.cat(message)
-				.cat((byte)0)
+				.cat(0)
 				.getBytes();
 	}
 		
