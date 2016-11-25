@@ -71,7 +71,7 @@ public class IntermediateHost{
 			clientSocket = new DatagramSocket();
 			
 			
-			/*DEPRECATED
+			/* OLD
 			//There are three threads so that the host can be listening on all three ports at the same time
 			//for D1, the host does not need to care about what it is moving at all.
 			
@@ -83,7 +83,7 @@ public class IntermediateHost{
 			/*This is the parent for all of the portHandlers, to clean up duplicate code
 			 * 
 			 */
-			class HandlerParent extends Thread{
+			abstract class HandlerParent implements Runnable{
 				protected PacketFX checkEffectPacket(int packetNum, PacketType t){
 					PacketFX effect;
 					for (int i = 0; i < fx.size(); ++i) {
@@ -189,7 +189,7 @@ public class IntermediateHost{
 
 			}
 			
-			new WellKnownPortHandler().start(); //start this thread
+			new Thread(new WellKnownPortHandler()).start(); //start this thread
 			
 			
 			//listens on the client port, and sends to the server port
@@ -253,7 +253,7 @@ public class IntermediateHost{
 			
 			}
 			
-			new ClientPortHandler().start();
+			new Thread (new ClientPortHandler()).start();
 			
 			//listens on the server port, updates the server's location, and sends to the client
 			class ServerPortHandler extends HandlerParent implements SendReceiveInterface{
@@ -315,7 +315,7 @@ public class IntermediateHost{
 				}
 			}
 			
-			new ServerPortHandler().start();
+			new Thread(new ServerPortHandler()).start();
 			
 			
 		}
@@ -432,9 +432,9 @@ public class IntermediateHost{
 			System.out.println("An IHErrorFile.txt was found, parsing");
 			{ //leftover scoping bracket
 				while (IHErrorTokenizer.hasMoreTokens()){ //read each line - this is context free
-					line = IHErrorTokenizer.nextToken();
-					System.out.println("line read: " + line); //DEBUG
-					if (!(line.charAt(0) == IHERRORFILECOMMENTCHAR)){ //skip this line if it begins with a #
+					line = IHErrorTokenizer.nextToken().replaceAll("[\\s]+", " ").trim();
+//					System.out.println("line read: " + line); //DEBUG
+					if (!line.isEmpty() && !(line.charAt(0) == IHERRORFILECOMMENTCHAR)){ //skip this line if it begins with a #
 						StringTokenizer token = new StringTokenizer(line, " "); //split the string by spaces
 						PacketType packetType;				//setup for the constructor
 						EffectType effectType;
@@ -447,7 +447,12 @@ public class IntermediateHost{
 						for (i = 0; token.hasMoreTokens(); ++i){
 							s = token.nextToken();
 							if (s.equalsIgnoreCase("cond")) break; //there's a condition
-							effectArgs[i] = new Integer(s.replaceAll("", ""));
+							if (s.matches("^-?\\d+$")){
+								System.out.println("matches int");
+								effectArgs[i] = new Integer(s.replaceAll("", ""));
+							} else {
+								effectArgs[i] = s; //deal with this on the argument side
+							}
 							s = null;
 						}
 						
@@ -455,7 +460,7 @@ public class IntermediateHost{
 							s = token.nextToken();
 							if (token.hasMoreTokens()){
 								String x = token.nextToken();
-								System.out.println(Integer.parseInt(x));
+//								System.out.println(Integer.parseInt(x));
 								effectArgs[i] = parseFXCondition(s, Integer.parseInt(x));
 							} else { 
 								effectArgs[i] = parseFXCondition(s, 0); //assume that they got the language right, this condition doesn't have a number, so it doesn't matter
@@ -474,6 +479,10 @@ public class IntermediateHost{
 							effectType = EffectType.OPCODE;
 						} else if (type.equalsIgnoreCase("mode")){
 							effectType = EffectType.MODE;
+						} else if (type.equalsIgnoreCase("port")){
+							effectType = EffectType.PORT;
+						} else if (type.equalsIgnoreCase("size")){
+							effectType = EffectType.SIZE;
 						} else{
 							effectType = EffectType.NOTHING;
 						}
@@ -494,7 +503,7 @@ public class IntermediateHost{
 						
 						System.out.println("New FX generated : packetNumber = " + packetNumber + " packetType = " + packetType.getHumanReadableName() + " effectArgs = " + Arrays.toString(effectArgs));
 						FX.add(new PacketFX(packetNumber, packetType, effectType, effectArgs));
-					}else System.out.println("Comment ignored");//if not a commentChar
+					}//else System.out.println("Comment ignored");//if not a commentChar
 				} //while loop
 			}//leftover scoping bracket
 		}//if IHErrorString != null

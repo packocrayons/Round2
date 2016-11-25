@@ -30,7 +30,7 @@ public class MistakePacket extends Packet {
 	public PacketType getType() {
 		return type;
 	}
-
+	
 	//@Override
 	public static int getBufferSize() {
 		return 1024;//who cares

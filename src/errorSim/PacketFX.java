@@ -2,9 +2,12 @@ package errorSim;
 
 import packets.*;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.Arrays;
 
-import packets.PacketType;
 import tftp.SendReceiveInterface;
 
 //* @author Team 17
@@ -19,6 +22,9 @@ public class PacketFX {
 	private static final int CORRUPTOPCODENEWCODE2INDEX = 1;
 	
 	private static final char OPCODECORRUPTIONCHAR = 'l';
+	
+	private static final int SIZENEWSIZEINDEX = 0;
+	private static final int SIZEIFNULLSINDEX = 1;
 	
 	private int packetNumber; //which packet number to affect
 	private PacketType packetType; //which type of packet to affect
@@ -105,29 +111,93 @@ public class PacketFX {
 		case OPCODE:
 			
 			byte[] datacontents = p.getBytes();
-			datacontents[0] = (byte)effectArgs[CORRUPTOPCODENEWCODE1INDEX];
-			datacontents[1] = (byte)effectArgs[CORRUPTOPCODENEWCODE2INDEX];
+			datacontents[0] = (byte)(((Integer)effectArgs[CORRUPTOPCODENEWCODE1INDEX]).intValue());
+			datacontents[1] = (byte)(((Integer)effectArgs[CORRUPTOPCODENEWCODE2INDEX]).intValue());
 			Packet newPacket = pf.getPacket(datacontents, datacontents.length); //this will probably return a mistake packet, that's fine because we can still send those
 			i.sendFromSocket(s, newPacket);
 			
 			break;
 			
 		case MODE: //this is only applicable to readRequest and writeRequest packets, otherwise we just send it on
+			
 			if(p instanceof ReadRequestPacket || p instanceof WriteRequestPacket){
-				System.out.println("mode running on request");
 				byte[] bytes = p.getBytes();
+				System.out.println("Old byte array: " + Arrays.toString(bytes));
 				int opcodeFinder;
-				for(opcodeFinder = 0; opcodeFinder < bytes.length; ++opcodeFinder){
-					if (bytes[opcodeFinder] == '0') break;
+				for(opcodeFinder = 1; opcodeFinder < bytes.length; ++opcodeFinder){ //skip the first char - it's a null and we don't want to pick it up
+					if (bytes[opcodeFinder] == 0) break;
 				}
+				System.out.println("changing char at index " + opcodeFinder);
 				bytes[opcodeFinder + 1] = OPCODECORRUPTIONCHAR;
-				Packet np = pf.getPacket(bytes, bytes.length);
+				Packet np = new GenericPacket(bytes);
+				System.out.println("new byte array: " + Arrays.toString(bytes));
 				i.sendFromSocket(s, np);
 				break;
 			} else {
 				i.sendFromSocket(s, p);break;
 			}
 			
+		case PORT:
+			
+			new Thread(new Runnable(){
+			
+				public void run(){
+					DatagramSocket newSocket = null;
+					try {
+						newSocket = new DatagramSocket();
+					} catch (SocketException e) {
+						e.printStackTrace();
+					}
+					i.sendFromSocket(newSocket, p);
+					System.out.println("Packet sent from port " + newSocket.getLocalPort());
+					DatagramPacket dp = new DatagramPacket(new byte[512], 512);
+					try {
+						newSocket.receive(new DatagramPacket(new byte[Packet.getBufferSize()], Packet.getBufferSize()));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					Packet o = new PacketFactory().getPacket(dp);
+					System.out.println("Packet received from server:");
+					System.out.println(o.getType());
+					if (o instanceof ErrorPacket){
+						ErrorPacket p=(ErrorPacket) o;
+						System.out.println("Packet type:"+ p.getType());
+		            	System.out.println("Error type:"+p.getErrorType());
+		            	System.out.println("Error message:"+p.getMessage());
+				    } else { System.out.println("Packet is not an Error Packet");}
+					return;
+				}
+			}).start();
+			break;
+			
+		case SIZE:
+			
+			boolean fillWithNulls = (effectArgs[SIZEIFNULLSINDEX] != null);
+			if (effectArgs[SIZENEWSIZEINDEX] instanceof Integer){
+				Integer newLength = (Integer)effectArgs[0];
+				GenericPacket np = new GenericPacket(p.getBytes());
+				byte[] npByteArray = np.getBytes(); //prefetch the array
+				if (newLength < 0 ){
+					System.out.println("shrinking array");
+					Packet packetToSend = new GenericPacket(Arrays.copyOf(npByteArray, npByteArray.length + newLength)); //pull off newLength from the array - remember newLength is negative
+					System.out.println("new array length : " + packetToSend.getBytes().length);
+					i.sendFromSocket(s, packetToSend); 
+				} else if (newLength > 0){
+					GenericPacket pToSend;
+					if (fillWithNulls){
+						System.out.println("Adding nulls to array");
+						byte[] nullBytes = new byte[newLength];
+						for (int x = 0; x < newLength; ++x) nullBytes[x] = 0;
+						pToSend = np.cat(nullBytes);
+					} else{
+						System.out.println("lengthening array");
+						pToSend = np.cat(Arrays.copyOf(np.getBytes(), newLength)); //add garbage from the front of the array to the end of the array
+					}
+					i.sendFromSocket(s, pToSend);
+					System.out.println("new array length : " + pToSend.getBytes().length);
+				}
+			} else System.out.println("Arg is not an Integer");
+			break;
 			
 		case NOTHING:
 			

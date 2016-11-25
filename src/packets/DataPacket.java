@@ -1,4 +1,3 @@
-
 package packets;
 
 import java.util.Arrays;
@@ -25,13 +24,12 @@ public class DataPacket extends Packet {
 		this.filePart = data.clone();
 		this.isLast = data.length<512;
 		this.number = number & 0xffff;
-		byte[] temp = new byte[4+data.length];
-		temp[0] = (byte)0;
-		temp[1] = type.getOpcode();
-		temp[2] = (byte)(number/(1<<8));
-		temp[3] = (byte)(number%(1<<8));
-		System.arraycopy( data, 0, temp, 4, data.length);
-		this.bytes = temp;
+		this.bytes = new GenericPacket()
+				.cat(type.getOpcode()>>8)
+				.cat(type.getOpcode()) 
+				.cat(number>>8)
+				.cat(number)
+				.cat(data).getBytes();
 	}
 	
 	protected DataPacket(byte[] data, int length){

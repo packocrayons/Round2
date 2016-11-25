@@ -8,5 +8,6 @@ public enum EffectType {
 	OPCODE, 
 	MODE,
 	PORT,
+	SIZE,
 	NOTHING;
 }
