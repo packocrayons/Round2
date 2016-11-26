@@ -53,6 +53,7 @@ public class PacketFX {
 	//In theory this could be called with a lambda, it would make it more versatile. perhaps in a later refactor but for now this works.
 	public void sendEffectPacket(DatagramSocket s, Packet p, SendReceiveInterface i){ //affect the packet based on effect, then send it (if it's not dropped)
 		if (!enabled) {
+			System.out.println("Effect disabled, packet sent along as normal");
 			i.sendFromSocket(s, p); //send the packet along as normal
 			return; //this is here so that the effect can hang around to have the condition met
 		}
@@ -232,7 +233,7 @@ public class PacketFX {
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} //wait until the 
+				}
 			}
 		}
 		System.out.println("Condition was met, freed from block");
