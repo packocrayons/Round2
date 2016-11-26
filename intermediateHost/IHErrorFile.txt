@@ -1,11 +1,31 @@
-#drop second acknowledgement packet
+#		  #################################
+#		  # Intermediate Host Error File  #
+#		  #################################
 
-delay ack 2 3000
+######################################################
+#	This file is parsed by the intermediate host
+#	on startup. There are many test cases available
+#	with comments describing what they do. To test,
+#	uncomment the line that you would like to use.
+#	
+#	Additional test cases can be added if desired,
+#	the language description is in the ReadMe. 
+#	Multiple test cases are allowed, and can be in
+#	any order
+######################################################
+
+#drop second acknowledgement packet
+#drop ack 2
+
 
 #drop the read request, number is a filler (see language description)
 #mode writerequest 0
 
-port ack 4
+#send data 4 from a new port - remember this also counts as dropping the packet.
+#port data 4
+
+#delay ack 5 until ack 12 arrives
+#delay ack 5 cond ack 12
 
 #add 2 null bytes to a readrequest
 #size readrequest 0 2 zeroes
