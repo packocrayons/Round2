@@ -88,6 +88,7 @@ public class Client {
 						out.highPriorityPrint("The read request timmed out, retrying");
 					}else{
 						out.highPriorityPrint("None of the read requests have worked.\nGiving up");
+						break;
 					}
 				}
 			} catch (IllegalAccessException  e) {
@@ -127,6 +128,7 @@ public class Client {
 						out.highPriorityPrint("The write request timmed out, retrying");
 					}else{
 						out.highPriorityPrint("None of the write requests have worked.\nGiving up");
+						break;
 					}
 				}
 			}
