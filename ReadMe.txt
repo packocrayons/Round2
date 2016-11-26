@@ -40,6 +40,7 @@ Available packets are :
 	error
 Currently the simulator reads from [project dir]/intermediateHost/IHErrorFile.txt.
 (note - for packets that do not have associated numbers - like an error packet or readrequest/writerequest, any valid number should be put in place as a placeholder)
+KNOWN BUG: After passing an error packet, sometimes the intermediateHost needs to be restarted. For safety, the intermediateHost should be restarted before initiating a transfer if the previous transfer contained an error packet.
 
 /!\ 
 Note : The IntermediateHost needs to be restarted if the IHErrorFile.txt is changed or when an Error Packet is received otherwise it will break the system. 
