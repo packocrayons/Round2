@@ -152,7 +152,7 @@ public class PacketFX {
 					System.out.println("Packet sent from port " + newSocket.getLocalPort());
 					DatagramPacket dp = new DatagramPacket(new byte[512], 512);
 					try {
-						newSocket.receive(new DatagramPacket(new byte[Packet.getBufferSize()], Packet.getBufferSize()));
+						newSocket.receive(dp);
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -164,7 +164,10 @@ public class PacketFX {
 						System.out.println("Packet type:"+ p.getType());
 		            	System.out.println("Error type:"+p.getErrorType());
 		            	System.out.println("Error message:"+p.getMessage());
-				    } else { System.out.println("Packet is not an Error Packet");}
+				    } else { 
+				    	MistakePacket mp = (MistakePacket) o;
+				    	System.out.println(mp.getMessage());
+				    }
 					return;
 				}
 			}).start();
