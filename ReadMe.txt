@@ -75,9 +75,10 @@ Our choices for previous IT4 :
 	Hence, if a data packet is truncated the file transfer will ends properly but the file will be different.
 	In the specification, No information is provided to handle a truncated data packet during a transfer. Thus,we decided to implement it this way.
 
-	If the sender or receiver , receive a packet from an unknown TID, then the packet is discarded, an error 5 packet is created and the transfer still goes on.
+	If the sender or receiver , receive a packet from an unknown TID, then the packet is discarded, an error 5 packet is created and the transfer still goes on. If a host receives an error 5 packet it should shut down (it means the other host doesn't accept packet from this host) .
 	If a packet is corrupted an error 4 packet is created (where the corrupted packet is received ) and sent to the host. Then Both host should end the transfer.
 	
+	Finally, we allow to retransmit 5 request packet (write or read) in case packets has been dropped or delayed. If a duplicate request is received in the server , a new handler is created but shuts down after receiving an error 5 packets from the host in transfer. 
 
 Setup Instructions
 
@@ -155,7 +156,7 @@ Other files:
 Responsibilites for IT4:
  
 Brydon Gibson (100975274) wrote the intermediate host code to provoke error 4 and error 5 packet. Plus enhanced the interpreter to add condition. Drew Timing diagrams for error 5.Wrote part of ReadMe.
-Griffin Barrett(100978435) drew Timing diagrams for Error 4, helped Brydon with Intermediate Host. 
+Griffin Barrett(100978435) drew Timing diagrams for Error 4 and UML class diagrams, helped Brydon with Intermediate Host. 
 Lisa Martini (101057495) wrote code for handling (creating/receiving) TFTP errors in Server, Client, Sender and Receiver. Refactored packets package to check if packets followed specification, wrote part of ReadMe.
 
 
