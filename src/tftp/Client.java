@@ -14,12 +14,12 @@ import packets.Packet;
 import packets.AcknowledgementPacket;
 import packets.ErrorPacket;
 import packets.ErrorType;
+import packets.FileType;
 import packets.MistakePacket;
 import packets.PacketFactory;
 import packets.PacketType;
 import packets.ReadRequestPacket;
 import packets.WriteRequestPacket;
-import tftp.FileType;
 
 
 /**

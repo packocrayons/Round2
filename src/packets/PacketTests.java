@@ -2,8 +2,6 @@ package packets;
 
 import org.junit.Test;
 
-import tftp.FileType;
-
 public class PacketTests {
 
 	@Test

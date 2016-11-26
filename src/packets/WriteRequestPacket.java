@@ -2,8 +2,6 @@ package packets;
 
 import java.util.Arrays;
 
-import tftp.FileType;
-
 /**
  * A class that handles everything required for Write Request Packet 
  * @author Team 17
