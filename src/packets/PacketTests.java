@@ -1,9 +1,5 @@
 package packets;
 
-import static org.junit.Assert.*;
-
-import java.util.Arrays;
-
 import org.junit.Test;
 
 import tftp.FileType;
@@ -44,10 +40,12 @@ public class PacketTests {
 	
 	@Test
 	public void testError() {
-		ErrorPacket ap = new ErrorPacket(ErrorType.ILLEGAL_TFTP_OPERATION, "Why are you doing these tests? You are just tesgint constructors.");
-		Packet p = new PacketFactory().getPacket(ap.getBytes(), ap.getBytes().length);
-		assert(p.getType().equals(ap.getType()));
-		assert(arrayEquality(p.getBytes(), ap.getBytes()));
+		for(ErrorType er : ErrorType.values()){
+			ErrorPacket ap = new ErrorPacket(er, "Why are you doing these tests? You are just tesging constructors.");
+			Packet p = new PacketFactory().getPacket(ap.getBytes(), ap.getBytes().length);
+			assert(p.getType().equals(ap.getType()));
+			assert(arrayEquality(p.getBytes(), ap.getBytes()));
+		}
 	}
 	
 	
