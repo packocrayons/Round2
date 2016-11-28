@@ -8,8 +8,6 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Arrays;
 
-import tftp.SendReceiveInterface;
-
 //* @author Team 17
 public class PacketFX {
 	//these are just offsets into the effectArgs[] array
