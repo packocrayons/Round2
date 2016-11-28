@@ -2,6 +2,7 @@
 package tftp;
 
 import java.net.DatagramPacket;
+import java.net.*;
 import java.util.Scanner;
 
 import packets.*;
@@ -24,8 +25,15 @@ public class ClientUI implements Runnable, OutputHandler {
 	
 	public ClientUI(ClientController c){
 		client = c;
-		System.out.println("Client Running");
-		System.out.println("Starting the UI");
+		InetAddress ownAddress=null;
+		try{
+			ownAddress=InetAddress.getLocalHost();
+		}catch(UnknownHostException e){
+			e.printStackTrace();
+		}
+		System.out.println("Client Running on IP Address : "+ownAddress);
+		System.out.println("Starting the UI ");
+		System.out.println("Type 'set server location (address)");
 		System.out.println("Type 'toggle test' to switch to test mode and 'toggle quiet' to switch to quiet mode. Type 'help' for more information");
 		System.out.println("Type 'read (filename)' to read from server or 'write (filename)' to write to server");
 	}
@@ -40,7 +48,17 @@ public class ClientUI implements Runnable, OutputHandler {
 			}else{
 				s.trim();
 				String[] array = (s+" , ,").split("\\s+");
-				if("read".equalsIgnoreCase(array[0])){
+				if ("set".equalsIgnoreCase(array[0]) && "server".equalsIgnoreCase(array[1]) && "location".equalsIgnoreCase(array[2]) ){
+					InetAddress newServerAddress;
+					try{
+						newServerAddress=InetAddress.getByName(array[3]);
+						client.setAddress(newServerAddress);
+						System.out.println("Server location changed to "+newServerAddress);
+					}catch(UnknownHostException e){
+						System.out.println("This address is invalid");
+					}
+				}
+				else if("read".equalsIgnoreCase(array[0])){
 					System.out.println("This a read command");
 					client.readFile(array[1]);
 				}else if("write".equalsIgnoreCase(array[0])){
@@ -57,7 +75,7 @@ public class ClientUI implements Runnable, OutputHandler {
 				}else if("help".equalsIgnoreCase(array[0])){
 					System.out.println(
 							"Valid commands are\n"
-							+ "read (file name), write (file name), toggle (quiet|test), help, quit");
+							+ "set server location (address), read (file name), write (file name), toggle (quiet|test), help, quit");
 				}else if("quit".equalsIgnoreCase(array[0])){
 					break;
 				}

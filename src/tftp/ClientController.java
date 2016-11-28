@@ -2,6 +2,7 @@
 package tftp;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 
 /**
@@ -14,12 +15,19 @@ import java.net.InetAddress;
 public class ClientController {
 	private final Client client;
 	
-	
+	private InetAddress address ;
 	private boolean testMode = false;
 	
 	public ClientController(Client c){
 		client = c;
-	
+		
+		try {
+			address=InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public boolean toggleTestMode(){
@@ -29,7 +37,7 @@ public class ClientController {
 	
 	public void readFile(String path){
 		try{
-			client.readFile(path, InetAddress.getLocalHost(), (testMode)?23:69); //try to get the client to read the file
+			client.readFile(path,address , (testMode)?23:69); //try to get the client to read the file
 		}catch(Throwable t){
 			//throw new RuntimeException(t.getMessage());
 			System.out.println("Client : The file you are trying to read does not exist at this path.");
@@ -40,7 +48,7 @@ public class ClientController {
 	
 	public void writeFile(String path){
 		try{
-			client.writeFile(path, InetAddress.getLocalHost(), (testMode)?23:69);
+			client.writeFile(path, address, (testMode)?23:69);
 		}catch(Throwable t){
 			//throw new RuntimeException(t.getMessage());
 			System.out.println("Client : The file you are trying to write does not exist at this path.");
@@ -56,6 +64,15 @@ public class ClientController {
 		this.testMode = testMode;
 	}
 	
+	public InetAddress getCurrentAddress(){
+		return address;
+	}
+	
+	public void setAddress(InetAddress newAddress){
+		
+			address=newAddress;
+		
+	}
 	
 }
 
