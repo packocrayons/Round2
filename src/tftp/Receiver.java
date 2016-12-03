@@ -38,6 +38,7 @@ public class Receiver implements Runnable {
     private boolean closed = false;
 	private int port;
 	
+	private boolean issueDuringTransfer=false;
 	public boolean retryRequest = true;
 	
 	/**
@@ -78,7 +79,9 @@ public class Receiver implements Runnable {
 				} catch (SocketTimeoutException e){
 					
 					if(lastReceived==true)out.highPriorityPrint("Transmission complete, file received successfully.");
-					else{out.highPriorityPrint("Receiver timed out , transfer failed");}
+					else{
+						issueDuringTransfer=true;
+						out.highPriorityPrint("Receiver timed out once , transfer failed");}
 					break;
 				}
 				
@@ -130,11 +133,16 @@ public class Receiver implements Runnable {
 							//if receiver receives any thing else than mistake or data or error
 							err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the receiver");
 						}
-						close();
-						if(!lastReceived)out.highPriorityPrint("Transmission failed");
+						
+						if(!lastReceived){
+							issueDuringTransfer=true;
+							out.highPriorityPrint("Transmission failed");
+						}
 						else{
 							out.highPriorityPrint("An error packet has been received after last ack sent so transmission still complete, file received successfully.");
 						}
+						
+						close();
 						break;
 					}
 					DataPacket dp = (DataPacket)p;

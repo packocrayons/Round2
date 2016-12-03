@@ -38,7 +38,7 @@ public class Sender implements Runnable {
 	private final PacketFactory pfac = new PacketFactory();
 		
 	private boolean closed = false;
-	
+	private boolean issueDuringTransfer=false;
 	public boolean retryRequest = true;
 	
 	/**
@@ -80,9 +80,10 @@ public class Sender implements Runnable {
 				} catch (SocketTimeoutException e){
 					if(++numberOfRetransmit==maxTimeouts){
 						out.highPriorityPrint("Timed out too many times");
+						issueDuringTransfer=true;
 						return false;
 					}
-					out.highPriorityPrint("Timed out, retransmitting");
+					out.highPriorityPrint("Timed out("+numberOfRetransmit+") , retransmitting");
 					socket.send(data.asDatagramPacket(address, port)); //keep trying to send the datagram
 					out.lowPriorityPrint("Sending packet to :"+port);
 					out.lowPriorityPrint("Packet type: DATA\n Block number " + data.getNumber()+"\n Number of bytes: "+(data.getBytes().length));
@@ -142,6 +143,7 @@ public class Sender implements Runnable {
 						//if sender receives any thing else than mistake or ack or error
 						err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the sender");
 					}
+					issueDuringTransfer=true;
 					break; //break out of everything 
 				}
 			}
@@ -179,6 +181,7 @@ public class Sender implements Runnable {
 				
 				if (!getValidAckPacket(dp)) {
 					//an error packet arrived, or it took too long
+					issueDuringTransfer=true;
 					break;
 				}
 				retryRequest = false;
@@ -201,11 +204,22 @@ public class Sender implements Runnable {
 	private synchronized void close(){
 		if(!closed){
 			closed = true;
-			out.highPriorityPrint("Transfer finished.");
+			if(issueDuringTransfer){
+				out.highPriorityPrint("Transfer failed ");
+			}
+			else{out.highPriorityPrint("Transfer succeeded.");}
 			out.lowPriorityPrint("Closing file stream");
 			
 			try {
 				this.file.close();
+				if (issueDuringTransfer){
+					//should delete the file
+					/*if(this.file.delete()){
+						out.highPriorityPrint(fileName+ " is deleted!");
+		    		}else{
+		    			out.highPriorityPrint("Delete operation is failed.");
+		    		}*/
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

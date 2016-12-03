@@ -86,7 +86,7 @@ public class Client {
 					if(!runner.retryRequest){
 						break;
 					}else if(tries++ < MAX_REQUEST_RETRIES){
-						out.highPriorityPrint("The read request timmed out, retrying");
+						out.highPriorityPrint("The read request timmed out ("+tries+") , retrying");
 					}else{
 						out.highPriorityPrint("None of the read requests have worked.\nGiving up");
 						break;
@@ -126,7 +126,7 @@ public class Client {
 					break;
 				} catch (SocketTimeoutException e){
 					if(tries++ < MAX_REQUEST_RETRIES){
-						out.highPriorityPrint("The write request timmed out, retrying");
+						out.highPriorityPrint("The write request timmed out ("+tries+") , retrying");
 					}else{
 						out.highPriorityPrint("None of the write requests have worked.\nGiving up");
 						break;
