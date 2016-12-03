@@ -136,7 +136,7 @@ public class Server implements Runnable{
 						
 						
 						if(output != null){
-							new Thread(new Receiver(err, out, output, sendReceiveSocket , true,r1.getFilePath())).start();//non-blocking
+							new Thread(new Receiver(err, out, output, sendReceiveSocket , true,r1.getFilePath(), fFac)).start();//non-blocking
 						}else{
 							sendReceiveSocket .close();
 						}

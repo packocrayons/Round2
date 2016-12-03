@@ -1,6 +1,7 @@
 
 package tftp;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
@@ -31,14 +32,17 @@ public class Receiver implements Runnable {
 	private final DatagramSocket socket;
 	private final boolean closeItWhenDone;
 	private final PacketFactory pFac = new PacketFactory();
+	private final FileFactory fd;
 	private boolean senderFound = false;
 
 	private boolean lastReceived=false;
 	private InetAddress address;
     private boolean closed = false;
 	private int port;
+	private boolean goodFinish = false;
 	
-	public boolean retryRequest = true;
+	
+	
 	
 	/**
 	 * @param err The error handler to use
@@ -47,14 +51,16 @@ public class Receiver implements Runnable {
 	 * @param socket The socket to use, with a preconfigured timeout
 	 * @param closeItWhenDone Weather or not to close the socket when we are done
 	 * @param fname The name of the file being transfered, this is to give the output some more context
+	 * @param fileDescriptor if this is present, and the transfer does not go well, the file will be deleted
 	 */
-	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone,String fname){
+	public Receiver(ErrorHandler err, OutputHandler out, OutputStream file, DatagramSocket socket, boolean closeItWhenDone, String fname, FileFactory optional){
 		this.err = err;
 		this.out = out;
 		this.file = file;
 		this.fileName=fname;
 		this.socket = socket;
 		this.closeItWhenDone = closeItWhenDone;
+		this.fd = optional;
 	}
 	
 	@Override
@@ -77,8 +83,12 @@ public class Receiver implements Runnable {
 					out.lowPriorityPrint(datagramIn);
 				} catch (SocketTimeoutException e){
 					
-					if(lastReceived==true)out.highPriorityPrint("Transmission complete, file received successfully.");
-					else{out.highPriorityPrint("Receiver timed out , transfer failed");}
+					if(lastReceived==true){
+						out.highPriorityPrint("Transmission complete, file received successfully.");
+						goodFinish = true;
+					}else{
+						out.highPriorityPrint("Receiver timed out , transfer failed");
+					}
 					break;
 				}
 				
@@ -87,7 +97,6 @@ public class Receiver implements Runnable {
 					port = datagramIn.getPort();
 					out.highPriorityPrint("Recording sender address"+ address +" and sender port :"+port);
 					senderFound = true;
-					retryRequest = false;
 				}
 
 				
@@ -199,7 +208,9 @@ public class Receiver implements Runnable {
 			return false;
 		}
 	}
-	
+	public boolean getSenderFound(){
+		return senderFound;
+	}
 	public void finalize(){
 		close();
 	}
@@ -218,7 +229,13 @@ public class Receiver implements Runnable {
 				 */
 				e.printStackTrace();
 			}
-			
+			if(!goodFinish){
+				if(fd!= null && fd.deleteFile(fileName)){
+					out.highPriorityPrint("The partial file has been deleted");
+				}else{
+					out.highPriorityPrint("Unable to delete the partial file");
+				}
+			}
 			if(closeItWhenDone){
 				out.lowPriorityPrint("Closing socket");
 				socket.close();

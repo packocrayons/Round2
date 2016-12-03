@@ -2,6 +2,7 @@
 package tftp;
 
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
@@ -67,7 +68,7 @@ public class Client {
 			try {
 				int tries = 0;
 				while(true){
-					OutputStream output = fFac.writeFile(filePath);
+					FileOutputStream output = fFac.writeFile(filePath);
 					ReadRequestPacket rq = new ReadRequestPacket(filePath, FileType.OCTET);
 					DatagramPacket request = new DatagramPacket(rq.getBytes(), rq.getBytes().length, address, port);
 					
@@ -80,9 +81,9 @@ public class Client {
 					out.lowPriorityPrint(request);
 					out.lowPriorityPrint(rq);
 					
-					Receiver runner = new Receiver(err, out, output, socket, false,filePath);
+					Receiver runner = new Receiver(err, out, output, socket, false, filePath, fFac);
 					runner.run();
-					if(!runner.retryRequest){
+					if(!runner.getSenderFound()){
 						break;
 					}else if(tries++ < MAX_REQUEST_RETRIES){
 						out.highPriorityPrint("The read request timmed out, retrying");
