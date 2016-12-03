@@ -197,7 +197,7 @@ public class IntermediateHost{
 				@Override
 				public void sendFromSocket(DatagramSocket s, Packet p){
 					try{
-						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), serverPort)); //destination is serverPort - set by a previous receive 
+						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, serverAdd, serverPort)); //destination is serverPort - set by a previous receive 
 					}catch(Throwable t){
 						//t.printStackTrace();
 						throw new RuntimeException(t.getMessage());
@@ -260,7 +260,7 @@ public class IntermediateHost{
 				@Override
 				public void sendFromSocket(DatagramSocket s, Packet p){
 					try{
-						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, InetAddress.getLocalHost(), clientPort)); //destination is clientPort, set by a previous receive
+						s.send(new DatagramPacket(p.getBytes(), p.getBytes().length, clientAdd, clientPort)); //destination is clientPort, set by a previous receive
 					}catch(Throwable t){
 						//t.printStackTrace();
 						throw new RuntimeException(t.getMessage());

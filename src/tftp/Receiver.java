@@ -41,8 +41,13 @@ public class Receiver implements Runnable {
 	private int port;
 	private boolean goodFinish = false;
 	
+<<<<<<< HEAD
 	
 	
+=======
+	private boolean issueDuringTransfer=false;
+	public boolean retryRequest = true;
+>>>>>>> branch 'master' of https://github.com/packocrayons/Round2.git
 	
 	/**
 	 * @param err The error handler to use
@@ -83,12 +88,19 @@ public class Receiver implements Runnable {
 					out.lowPriorityPrint(datagramIn);
 				} catch (SocketTimeoutException e){
 					
+<<<<<<< HEAD
 					if(lastReceived==true){
 						out.highPriorityPrint("Transmission complete, file received successfully.");
 						goodFinish = true;
 					}else{
 						out.highPriorityPrint("Receiver timed out , transfer failed");
 					}
+=======
+					if(lastReceived==true)out.highPriorityPrint("Transmission complete, file received successfully.");
+					else{
+						issueDuringTransfer=true;
+						out.highPriorityPrint("Receiver timed out once , transfer failed");}
+>>>>>>> branch 'master' of https://github.com/packocrayons/Round2.git
 					break;
 				}
 				
@@ -139,11 +151,16 @@ public class Receiver implements Runnable {
 							//if receiver receives any thing else than mistake or data or error
 							err.handleLocalIllegalTftpOperation(socket,address, port, "Packet type "+p.getType()+" not expected by the receiver");
 						}
-						close();
-						if(!lastReceived)out.highPriorityPrint("Transmission failed");
+						
+						if(!lastReceived){
+							issueDuringTransfer=true;
+							out.highPriorityPrint("Transmission failed");
+						}
 						else{
 							out.highPriorityPrint("An error packet has been received after last ack sent so transmission still complete, file received successfully.");
 						}
+						
+						close();
 						break;
 					}
 					DataPacket dp = (DataPacket)p;

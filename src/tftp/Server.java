@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import packets.AcknowledgementPacket;
@@ -185,7 +187,14 @@ public class Server implements Runnable{
 		}
 		
 		new Thread(server).start();
-		System.out.println("The server has started");
+		InetAddress ownAddress=null;
+		try {
+			ownAddress=InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("The server has started this IP address " +ownAddress);
 		System.out.println("Type 'toggle quiet' to switch to quiet mode.");
 		System.out.println("Type 'quit' to shutdown the server");
 		Scanner scanner=new Scanner(System.in);
