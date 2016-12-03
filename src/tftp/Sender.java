@@ -206,20 +206,13 @@ public class Sender implements Runnable {
 			closed = true;
 			if(issueDuringTransfer){
 				out.highPriorityPrint("Transfer failed ");
+			}else{
+				out.highPriorityPrint("Transfer succeeded.");
 			}
-			else{out.highPriorityPrint("Transfer succeeded.");}
 			out.lowPriorityPrint("Closing file stream");
 			
 			try {
 				this.file.close();
-				if (issueDuringTransfer){
-					//should delete the file
-					/*if(this.file.delete()){
-						out.highPriorityPrint(fileName+ " is deleted!");
-		    		}else{
-		    			out.highPriorityPrint("Delete operation is failed.");
-		    		}*/
-				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

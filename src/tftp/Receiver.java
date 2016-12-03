@@ -1,7 +1,6 @@
 
 package tftp;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
@@ -41,13 +40,7 @@ public class Receiver implements Runnable {
 	private int port;
 	private boolean goodFinish = false;
 	
-<<<<<<< HEAD
-	
-	
-=======
-	private boolean issueDuringTransfer=false;
 	public boolean retryRequest = true;
->>>>>>> branch 'master' of https://github.com/packocrayons/Round2.git
 	
 	/**
 	 * @param err The error handler to use
@@ -87,20 +80,12 @@ public class Receiver implements Runnable {
 					out.lowPriorityPrint("Packet received from :" );
 					out.lowPriorityPrint(datagramIn);
 				} catch (SocketTimeoutException e){
-					
-<<<<<<< HEAD
 					if(lastReceived==true){
 						out.highPriorityPrint("Transmission complete, file received successfully.");
 						goodFinish = true;
 					}else{
 						out.highPriorityPrint("Receiver timed out , transfer failed");
 					}
-=======
-					if(lastReceived==true)out.highPriorityPrint("Transmission complete, file received successfully.");
-					else{
-						issueDuringTransfer=true;
-						out.highPriorityPrint("Receiver timed out once , transfer failed");}
->>>>>>> branch 'master' of https://github.com/packocrayons/Round2.git
 					break;
 				}
 				
@@ -117,8 +102,7 @@ public class Receiver implements Runnable {
 					out.highPriorityPrint("this packet comes from another sender -> discarded");
 					err.handleLocalUnknownTransferId(socket, datagramIn.getAddress(), datagramIn.getPort());
 					//don't proceed the packet return to wait for a packet
-				}
-				else{//if the sender is the expected one proceed the packet
+				}else{//if the sender is the expected one proceed the packet
 				
 					//check the input
 					Packet p = pFac.getPacket(datagramIn);
@@ -153,11 +137,10 @@ public class Receiver implements Runnable {
 						}
 						
 						if(!lastReceived){
-							issueDuringTransfer=true;
 							out.highPriorityPrint("Transmission failed");
-						}
-						else{
-							out.highPriorityPrint("An error packet has been received after last ack sent so transmission still complete, file received successfully.");
+						}else{
+							out.highPriorityPrint("An error packet has been received after last ack. Something whent wrong with the transmition");
+							err.handleLocalIllegalTftpOperation(socket, address, port, "Error receved after the last ack");
 						}
 						
 						close();
@@ -177,9 +160,13 @@ public class Receiver implements Runnable {
 					}else if(dp.comesAfter(lastBlockNumber)){
 						out.lowPriorityPrint("It is the expected block (next block)");
 						//we received the next block
-						writeOut(dp.getFilePart());
-						lastBlockNumber = (lastBlockNumber+1) & 0xffff; 
-						ack(lastBlockNumber);
+						if(lastReceived){
+							out.highPriorityPrint("We receved a data block after the last data block, something has gone wrong");
+							err.handleLocalIllegalTftpOperation(socket, address, port, "Data receved after the last data");
+							break;
+						}
+						writeOut(dp.getFilePart()); 
+						ack(++lastBlockNumber);
 						if(dp.isLast()){
 							lastReceived=true;
 							continue;
@@ -193,7 +180,6 @@ public class Receiver implements Runnable {
 				}
 			}
 			
-			//maybe leave the socket open for a short while to retransmit the last ack?
 			close();
 		}catch(Throwable t){
 			throw new RuntimeException(t);

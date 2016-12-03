@@ -32,7 +32,7 @@ public class FileFactory {
 	 * 
 	 */
 	
-	public FileOutputStream writeFile(String fileName) throws IllegalAccessException{
+	public OutputStream writeFile(String fileName) throws IllegalAccessException{
 		try{
 			return new FileOutputStream(directory+fileName);
 		}catch(FileNotFoundException e){
@@ -49,7 +49,7 @@ public class FileFactory {
 	 * if it does exist, but cannot be opened, IllegalAccessException is thrown.
 	 * 
 	 */
-	public FileInputStream readFile(String fileName) throws IllegalAccessException, FileNotFoundException{		
+	public InputStream readFile(String fileName) throws IllegalAccessException, FileNotFoundException{		
 		if(new File(directory+fileName).exists()){
 			try{
 				return new FileInputStream(directory+fileName);
