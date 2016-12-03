@@ -20,7 +20,7 @@ import packets.PacketFactory;
 import packets.PacketType;
 import packets.ReadRequestPacket;
 import packets.WriteRequestPacket;
-import tftp.FileType;
+import packets.FileType;
 
 
 /**
