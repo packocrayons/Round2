@@ -10,6 +10,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import errorSim.TestFileMaker;
 import packets.AcknowledgementPacket;
 import packets.MistakePacket;
 import packets.Packet;
@@ -17,7 +18,6 @@ import packets.PacketFactory;
 import packets.PacketType;
 import packets.ReadRequestPacket;
 import packets.WriteRequestPacket;
-import testFileGeneration.TestFileMaker;
 
 
 /**

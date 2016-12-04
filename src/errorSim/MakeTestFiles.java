@@ -1,4 +1,4 @@
-package testFileGeneration;
+package errorSim;
 import java.io.IOException;
 import java.io.OutputStream;
 

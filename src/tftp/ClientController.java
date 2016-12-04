@@ -4,7 +4,7 @@ package tftp;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import testFileGeneration.TestFileMaker;
+import errorSim.TestFileMaker;
 
 
 /**
