@@ -32,26 +32,14 @@ public class MakeTestFiles {
 			"2^16+1x512.txt",
 			"2^17x512.txt"};
 	
-	private void write(long size, OutputStream out) throws IOException{
-		int charValue = 0;
-		while(--size>=0){
-			if(size >0){
-				charValue = (charValue+1)%26;
-				out.write(charValue+'a');
-			}else{
-				out.write('\n');
-			}
-		}
-		out.close();
-	}
 	
 	@Test
 	public void test() throws IllegalAccessException, IOException {
-		FileFactory fFac = new FileFactory(".\\testFiles");
-		for(int i = 0; i<Math.min(fileSizes.length, fileNames.length); i++){
-			System.out.println(i);
-			write(fileSizes[i], fFac.writeFile(fileNames[i]));
+		int i;
+		for(i = 0; i<Math.min(fileSizes.length, fileNames.length)-1; i++){
+			new Thread(new TestFileMaker(fileNames[i],Long.valueOf(fileSizes[i]).toString())).start();
 		}
+		new TestFileMaker(fileNames[i],Long.valueOf(fileSizes[i]).toString()).run();
 	}
 
 }
