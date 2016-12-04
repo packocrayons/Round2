@@ -185,6 +185,9 @@ public class Client {
 		}
 	}
 	
+	public String getDirectory(){
+		return fFac.getDirectory();
+	}
 	
 	public static void main(String[] args){
 		Client c;

@@ -1,3 +1,4 @@
+package testFileGeneration;
 import java.io.OutputStream;
 import java.util.Scanner;
 
@@ -38,7 +39,7 @@ public class TestFileMaker implements Runnable {
 		try {
 			System.out.println("Writing "+name);
 			OutputStream out = new FileFactory(path).writeFile(name);
-			int charValue = 0;
+			int charValue = -1;
 			long s = size;
 			while(--s >= 0L){
 				if(s > 0L){

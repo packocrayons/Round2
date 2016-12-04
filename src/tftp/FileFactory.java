@@ -64,6 +64,10 @@ public class FileFactory {
 	public boolean deleteFile(String filePath){
 		return new File(filePath).delete();
 	}
+	
+	public String getDirectory(){
+		return directory;
+	}
 }
 
 

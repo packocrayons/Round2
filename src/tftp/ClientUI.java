@@ -33,9 +33,7 @@ public class ClientUI implements Runnable, OutputHandler {
 		}
 		System.out.println("Client Running on IP Address : "+ownAddress);
 		System.out.println("Starting the UI ");
-		System.out.println("Type 'set server location (address)");
-		System.out.println("Type 'toggle test' to switch to test mode and 'toggle quiet' to switch to quiet mode. Type 'help' for more information");
-		System.out.println("Type 'read (filename)' to read from server or 'write (filename)' to write to server");
+		help();
 	}
 
 	
@@ -47,7 +45,7 @@ public class ClientUI implements Runnable, OutputHandler {
 				System.out.println("Cannot read input... Try again");
 			}else{
 				s.trim();
-				String[] array = (s+" , ,").split("\\s+");
+				String[] array = (s+" , , , , ,").split("[\\s]+");
 				if ("set".equalsIgnoreCase(array[0]) && "server".equalsIgnoreCase(array[1]) && "location".equalsIgnoreCase(array[2]) ){
 					InetAddress newServerAddress;
 					try{
@@ -57,13 +55,15 @@ public class ClientUI implements Runnable, OutputHandler {
 					}catch(UnknownHostException e){
 						System.out.println("This address is invalid");
 					}
-				}
-				else if("read".equalsIgnoreCase(array[0])){
+				}else if("read".equalsIgnoreCase(array[0])){
 					System.out.println("This a read command");
 					client.readFile(array[1]);
 				}else if("write".equalsIgnoreCase(array[0])){
 					System.out.println("This a write command");
 					client.writeFile(array[1]);
+				}else if("make".equalsIgnoreCase(array[0])){
+					System.out.println("Making test file");
+					client.makeTestFile(array[1], Long.valueOf(array[2]));
 				}else if("toggle".equalsIgnoreCase(array[0])){
 					if("test".equalsIgnoreCase(array[1])){
 						System.out.println((client.toggleTestMode())?("Test mode is now active"):("Test mode is now inactive"));
@@ -73,9 +73,7 @@ public class ClientUI implements Runnable, OutputHandler {
 						System.out.println("Toggle what, test or quiet?");
 					}
 				}else if("help".equalsIgnoreCase(array[0])){
-					System.out.println(
-							"Valid commands are\n"
-							+ "set server location (address), read (file name), write (file name), toggle (quiet|test), help, quit");
+					help();
 				}else if("quit".equalsIgnoreCase(array[0])){
 					break;
 				}
@@ -83,6 +81,25 @@ public class ClientUI implements Runnable, OutputHandler {
 			
 		}
 		sc.close();
+	}
+	
+	private void help(){
+		System.out.println(
+				"Valid commands are\n"
+				+ "set server location (address)\n"
+				+ "\tSet where requests are directed\n\n"
+				+ "read (file name)\n"
+				+ "\tSend a read request for the names file\n\n"
+				+ "write (file name)\n"
+				+ "\tSend a write request for the names file\n\n"
+				+ "toggle (quiet|test)\n"
+				+ "\tChange client configuration\n\n"
+				+ "make (file name) (number of bytes)\n"
+				+ "\tCreate a new test file in the clients working directory\n\n"
+				+ "help\n"
+				+ "\tPrint this message\n\n"
+				+ "quit\n"
+				+ "\tClose thet client");
 	}
 
 	@Override

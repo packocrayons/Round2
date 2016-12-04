@@ -4,6 +4,8 @@ package tftp;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import testFileGeneration.TestFileMaker;
+
 
 /**
  * ClientController controls the Read and Write operations of the client 
@@ -72,6 +74,10 @@ public class ClientController {
 		
 			address=newAddress;
 		
+	}
+
+	public void makeTestFile(String name, long size) {
+		new TestFileMaker(name, Long.valueOf(size).toString(), client.getDirectory()).run();
 	}
 	
 }

@@ -17,6 +17,7 @@ import packets.PacketFactory;
 import packets.PacketType;
 import packets.ReadRequestPacket;
 import packets.WriteRequestPacket;
+import testFileGeneration.TestFileMaker;
 
 
 /**
@@ -202,10 +203,20 @@ public class Server implements Runnable{
 	        String input = scanner.nextLine();
 	        if(input.toLowerCase().contains("quit")){
 	        	break;
-	        }
-	        else if (input.toLowerCase().contains("toggle quiet")){
+	        }else if (input.toLowerCase().contains("toggle quiet")){
 	        	server.out.setQuiet(!server.out.getQuiet());
 	        	System.out.println(server.out.getQuiet()?("Quiet mode is now active"):("Quiet mode is now inactive"));
+	        }else if (input.toLowerCase().contains("make")){
+	        	String[] in = input.split("[\\s]+");
+	        	if(in.length==3 && in[0].toLowerCase().trim().equalsIgnoreCase("make")){
+	        		try{
+	        			new TestFileMaker(in[1],in[2],server.fFac.getDirectory()).run();
+	        		}catch(Throwable t){
+	        			System.out.println("Could not create the file");
+	        		}
+	        	}
+	        }else{
+	        	System.out.println("Unrecognized command");
 	        }
 	        
 	    }
