@@ -15,10 +15,10 @@ public class MakeTestFiles {
 			127*512,
 			128*512,
 			129*512,
-			(((1<<16)-1)*512),
-			((1<<16)*512),
-			(((1<<16)+1)*512),
-			1<<17*512};
+			((1<<16)-1)*512,
+			(1<<16)*512,
+			((1<<16)+1)*512,
+			(1<<17)*512};
 	private static final String[] fileNames = {
 			"0.txt",
 			"1.txt",
@@ -30,7 +30,7 @@ public class MakeTestFiles {
 			"2^16-1x512.txt",
 			"2^16x512.txt",
 			"2^16+1x512.txt",
-			"2^17.txt"};
+			"2^17x512.txt"};
 	
 	private void write(long size, OutputStream out) throws IOException{
 		int charValue = 0;

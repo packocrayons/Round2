@@ -81,7 +81,7 @@ public class Client {
 					
 					Receiver runner = new Receiver(err, out, output, socket, false, filePath, fFac);
 					runner.run();
-					if(!runner.getSenderFound()){
+					if(runner.getSenderFound()){
 						break;
 					}else if(tries++ < MAX_REQUEST_RETRIES){
 						out.highPriorityPrint("The read request timmed out, retrying");
